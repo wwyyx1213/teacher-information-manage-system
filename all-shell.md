@@ -331,6 +331,10 @@ python manage.py test
 
 # 2
 
+现在请开始按照之前分析，逐步开始实现该前后端分离系统
+
+
+
 好的，让我们开始一步步实现这个系统。我们先从项目的基础架构开始：
 
 ### 第一步：创建项目目录结构
@@ -620,7 +624,265 @@ urlpatterns = [
 
 # 3
 
+我想要你创建前端项目并一步步实现前端界面，vue3
 
+
+
+好的，下面我将带你一步步用 Vue3（不使用 TypeScript）+ Element Plus（Element UI 的 Vue3 版本）来创建和实现前端界面。我们会从项目初始化到基础页面搭建，逐步推进。
+
+---
+
+## 1. 创建前端项目
+
+在你的项目根目录下执行：
+
+```bash
+npm install -g @vue/cli
+vue create frontend
+```
+
+- 选择 **Vue 3**，不选 TypeScript，其他按需选择（建议 Babel、Router、Vuex、Linter）。
+- 进入前端目录：
+
+```bash
+cd frontend
+```
+
+---
+
+## 2. 安装 Element Plus 和 axios
+
+```bash
+npm install element-plus axios
+```
+
+---
+
+## 3. 配置 Element Plus
+
+编辑 `src/main.js`：
+
+```js
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import store from './store'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+
+const app = createApp(App)
+app.use(router)
+app.use(store)
+app.use(ElementPlus)
+app.mount('#app')
+```
+
+---
+
+## 4. 配置 axios 全局基础地址
+
+在 `src` 下新建 `utils/request.js`：
+
+```js
+import axios from 'axios'
+
+const service = axios.create({
+  baseURL: 'http://localhost:8000/api/', // 后端API地址，按需修改
+  timeout: 5000
+})
+
+export default service
+```
+
+---
+
+## 5. 配置路由
+
+编辑 `src/router/index.js`，添加基础路由：
+
+```js
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from '../views/Home.vue'
+import TeacherList from '../views/TeacherList.vue'
+import TeacherDetail from '../views/TeacherDetail.vue'
+import Appointment from '../views/Appointment.vue'
+
+const routes = [
+  { path: '/', name: 'Home', component: Home },
+  { path: '/teachers', name: 'TeacherList', component: TeacherList },
+  { path: '/teacher/:id', name: 'TeacherDetail', component: TeacherDetail },
+  { path: '/appointment', name: 'Appointment', component: Appointment }
+]
+
+const router = createRouter({
+  history: createWebHistory(process.env.BASE_URL),
+  routes
+})
+
+export default router
+```
+
+---
+
+## 6. 创建页面文件
+
+在 `src/views/` 下新建：
+
+- `Home.vue`
+- `TeacherList.vue`
+- `TeacherDetail.vue`
+- `Appointment.vue`
+
+---
+
+## 7. 实现教师列表页面（TeacherList.vue）
+
+`src/views/TeacherList.vue` 示例：
+
+```vue
+<template>
+  <div>
+    <el-card>
+      <div style="margin-bottom: 20px;">
+        <el-input
+          v-model="search"
+          placeholder="搜索教师姓名/方向/院系"
+          style="width: 300px"
+          @input="fetchTeachers"
+        />
+      </div>
+      <el-table :data="teachers" style="width: 100%">
+        <el-table-column prop="user.username" label="姓名" />
+        <el-table-column prop="title" label="职称" />
+        <el-table-column prop="department" label="院系" />
+        <el-table-column prop="research_direction" label="研究方向" />
+        <el-table-column label="操作">
+          <template #default="scope">
+            <el-button type="primary" @click="goDetail(scope.row.id)" size="small">详情</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </div>
+</template>
+
+<script>
+import request from '../utils/request'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+export default {
+  setup() {
+    const teachers = ref([])
+    const search = ref('')
+    const router = useRouter()
+
+    const fetchTeachers = async () => {
+      const res = await request.get('teachers/', {
+        params: search.value ? { search: search.value } : {}
+      })
+      teachers.value = res.data
+    }
+
+    const goDetail = (id) => {
+      router.push(`/teacher/${id}`)
+    }
+
+    onMounted(fetchTeachers)
+
+    return { teachers, search, fetchTeachers, goDetail }
+  }
+}
+</script>
+```
+
+---
+
+## 8. 实现教师详情页面（TeacherDetail.vue）
+
+`src/views/TeacherDetail.vue` 示例：
+
+```vue
+<template>
+  <div>
+    <el-card v-if="teacher">
+      <h2>{{ teacher.user.username }}（{{ teacher.title }}）</h2>
+      <p><b>院系：</b>{{ teacher.department }}</p>
+      <p><b>研究方向：</b>{{ teacher.research_direction }}</p>
+      <p><b>简介：</b>{{ teacher.introduction }}</p>
+      <el-divider>科研项目</el-divider>
+      <ul>
+        <li v-for="p in teacher.projects" :key="p.id">{{ p.title }}（{{ p.funding_source }}）</li>
+      </ul>
+      <el-divider>发表论文</el-divider>
+      <ul>
+        <li v-for="pub in teacher.publications" :key="pub.id">{{ pub.title }}（{{ pub.journal }}，{{ pub.publication_date }}）</li>
+      </ul>
+      <el-button type="success" @click="goAppointment">预约导师</el-button>
+    </el-card>
+  </div>
+</template>
+
+<script>
+import request from '../utils/request'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+export default {
+  setup() {
+    const teacher = ref(null)
+    const route = useRoute()
+    const router = useRouter()
+
+    const fetchTeacher = async () => {
+      const res = await request.get(`teachers/${route.params.id}/`)
+      teacher.value = res.data
+    }
+
+    const goAppointment = () => {
+      router.push({ path: '/appointment', query: { teacher: route.params.id } })
+    }
+
+    onMounted(fetchTeacher)
+
+    return { teacher, goAppointment }
+  }
+}
+</script>
+```
+
+---
+
+## 9. 预约页面（Appointment.vue）
+
+你可以设计一个表单，选择时间段，提交预约请求。
+
+---
+
+## 10. 首页（Home.vue）
+
+可以放系统简介、推荐教师等内容。
+
+---
+
+## 11. 运行前端项目
+
+```bash
+npm run serve
+```
+
+---
+
+## 12. 后续扩展
+
+- 登录注册、权限管理
+- 预约管理、日程展示
+- 推荐教师功能
+- 个人中心等
+
+---
+
+如需详细实现某一页面或功能，请告诉我！
 
 
 
