@@ -470,6 +470,141 @@ export default {
 
 
 
+# 数据库预定：
+
+---
+
+### 1. `user` 表
+
+| 列名          | 数据类型                          | 约束                                  | 说明         |
+| ------------- | --------------------------------- | ------------------------------------- | ------------ |
+| id            | INT AUTO_INCREMENT                | PRIMARY KEY                           | 用户主键     |
+| username      | VARCHAR(50)                       | NOT NULL, UNIQUE                      | 登录名       |
+| password_hash | VARCHAR(255)                      | NOT NULL                              | 密码（哈希） |
+| email         | VARCHAR(100)                      | NOT NULL, UNIQUE                      | 邮箱         |
+| role          | ENUM('student','teacher','admin') | NOT NULL, DEFAULT 'student'           | 用户角色     |
+| created_at    | DATETIME                          | NOT NULL, DEFAULT CURRENT_TIMESTAMP   | 创建时间     |
+| updated_at    | DATETIME                          | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | 修改时间     |
+
+---
+
+### 2. `teacher_profile` 表
+
+| 列名           | 数据类型           | 约束                                                  | 说明         |
+| -------------- | ------------------ | ----------------------------------------------------- | ------------ |
+| id             | INT AUTO_INCREMENT | PRIMARY KEY                                           | 教师档案主键 |
+| user_id        | INT                | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE | 关联用户     |
+| name           | VARCHAR(100)       | NOT NULL                                              | 姓名         |
+| department     | VARCHAR(100)       | NOT NULL                                              | 院系         |
+| title          | VARCHAR(50)        | DEFAULT NULL                                          | 职称         |
+| research_areas | TEXT               |                                                       | 研究方向     |
+| homepage_url   | VARCHAR(255)       |                                                       | 外部主页链接 |
+| avatar_url     | VARCHAR(255)       |                                                       | 头像链接     |
+| bio            | TEXT               |                                                       | 个人简介     |
+| created_at     | DATETIME           | NOT NULL, DEFAULT CURRENT_TIMESTAMP                   | 创建时间     |
+| updated_at     | DATETIME           | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                 | 修改时间     |
+
+---
+
+### 3. `schedule` 表
+
+| 列名            | 数据类型                            | 约束                                                             | 说明          |
+| --------------- | ----------------------------------- | ---------------------------------------------------------------- | ------------- |
+| id              | INT AUTO_INCREMENT                  | PRIMARY KEY                                                      | 日程主键      |
+| teacher_id      | INT                                 | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 关联教师      |
+| start_time      | DATETIME                            | NOT NULL                                                         | 开始时间      |
+| end_time        | DATETIME                            | NOT NULL                                                         | 结束时间      |
+| is_available    | TINYINT(1)                          | NOT NULL, DEFAULT 1                                              | 是否可预约    |
+| external_source | ENUM('google','outlook','internal') | NOT NULL, DEFAULT 'internal'                                     | 来源          |
+| external_id     | VARCHAR(100)                        | DEFAULT NULL                                                     | 第三方事件 ID |
+| synced_at       | DATETIME                            | DEFAULT NULL                                                     | 同步时间      |
+| created_at      | DATETIME                            | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 创建时间      |
+| updated_at      | DATETIME                            | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                            | 修改时间      |
+
+---
+
+### 4. `research_output` 表
+
+| 列名        | 数据类型                                | 约束                                                             | 说明     |
+| ----------- | --------------------------------------- | ---------------------------------------------------------------- | -------- |
+| id          | INT AUTO_INCREMENT                      | PRIMARY KEY                                                      | 成果主键 |
+| teacher_id  | INT                                     | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 关联教师 |
+| title       | VARCHAR(200)                            | NOT NULL                                                         | 标题     |
+| type        | ENUM('grant','paper','project','other') | DEFAULT 'other'                                                  | 类型     |
+| date        | DATE                                    |                                                                  | 时间     |
+| description | TEXT                                    |                                                                  | 描述     |
+| file_url    | VARCHAR(255)                            |                                                                  | 附件链接 |
+| created_at  | DATETIME                                | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 创建时间 |
+| updated_at  | DATETIME                                | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                            | 修改时间 |
+
+---
+
+### 5. `appointment` 表
+
+| 列名       | 数据类型                              | 约束                                                             | 说明     |
+| ---------- | ------------------------------------- | ---------------------------------------------------------------- | -------- |
+| id         | INT AUTO_INCREMENT                    | PRIMARY KEY                                                      | 预约主键 |
+| student_id | INT                                   | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE            | 学生     |
+| teacher_id | INT                                   | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 教师     |
+| time_slot  | DATETIME                              | NOT NULL                                                         | 预约时间 |
+| status     | ENUM('pending','accepted','rejected') | NOT NULL, DEFAULT 'pending'                                      | 状态     |
+| remarks    | TEXT                                  |                                                                  | 备注     |
+| created_at | DATETIME                              | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 创建时间 |
+| updated_at | DATETIME                              | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                            | 修改时间 |
+
+---
+
+### 6. `recommendation_param` 表
+
+| 列名       | 数据类型           | 约束                                  | 说明     |
+| ---------- | ------------------ | ------------------------------------- | -------- |
+| id         | INT AUTO_INCREMENT | PRIMARY KEY                           | 参数主键 |
+| factor     | VARCHAR(100)       | NOT NULL                              | 因子名称 |
+| weight     | DECIMAL(5,2)       | NOT NULL, DEFAULT 1.00                | 权重     |
+| created_at | DATETIME           | NOT NULL, DEFAULT CURRENT_TIMESTAMP   | 创建时间 |
+| updated_at | DATETIME           | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | 修改时间 |
+
+---
+
+### 7. `recommendation_history` 表
+
+| 列名       | 数据类型           | 约束                                                             | 说明         |
+| ---------- | ------------------ | ---------------------------------------------------------------- | ------------ |
+| id         | INT AUTO_INCREMENT | PRIMARY KEY                                                      | 历史记录主键 |
+| student_id | INT                | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE            | 学生         |
+| teacher_id | INT                | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 教师         |
+| score      | DECIMAL(6,4)       | NOT NULL                                                         | 推荐分数     |
+| created_at | DATETIME           | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 生成时间     |
+
+---
+
+### 8. `external_sync_log` 表
+
+| 列名    | 数据类型                 | 约束                                | 说明               |
+| ------- | ------------------------ | ----------------------------------- | ------------------ |
+| id      | INT AUTO_INCREMENT       | PRIMARY KEY                         | 日志主键           |
+| source  | VARCHAR(50)              | NOT NULL                            | 来源（如工大主页） |
+| status  | ENUM('success','failed') | NOT NULL                            | 同步状态           |
+| details | TEXT                     |                                     | 详情               |
+| run_at  | DATETIME                 | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 同步执行时间       |
+
+---
+
+### 9. `notification` 表
+
+| 列名       | 数据类型                              | 约束                                                  | 说明     |
+| ---------- | ------------------------------------- | ----------------------------------------------------- | -------- |
+| id         | INT AUTO_INCREMENT                    | PRIMARY KEY                                           | 通知主键 |
+| user_id    | INT                                   | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE | 接收用户 |
+| type       | ENUM('appointment','system','custom') | NOT NULL                                              | 通知类型 |
+| content    | TEXT                                  | NOT NULL                                              | 通知内容 |
+| is_read    | TINYINT(1)                            | NOT NULL, DEFAULT 0                                   | 是否已读 |
+| created_at | DATETIME                              | NOT NULL, DEFAULT CURRENT_TIMESTAMP                   | 生成时间 |
+
+---
+
+
+
 
 
 
