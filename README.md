@@ -222,7 +222,251 @@ django + vue(引用Element ui) + mysql 前后端分离
 
 ---
 
+# 接口API
 
+下面以[ **RESTful** 风格](https://blog.csdn.net/zzvar/article/details/118164133)，结合前后端路由设计，给出详细的接口文档。所有接口均以 `http://<域名>/api/` 为前缀，并使用 **JSON** 格式请求与响应。
+
+统一要求：
+
+* 所有修改类 (POST/PUT/PATCH/DELETE) 接口都需在请求头中带 `Authorization: Bearer <token>`（除登录、注册外）。
+* 时间字段一律采用 ISO 8601，如 `"2025-06-01T10:00:00Z"`。
+* 错误返回统一 `{ "code": <int>, "message": <string>, "details": <object?> }`。
+
+---
+
+## 1. 认证与用户
+
+| 方法 | 路径                    | 描述              | 请求体                                  | 响应体                                            |
+| ---- | ----------------------- | ----------------- | --------------------------------------- | ------------------------------------------------- |
+| POST | `/api/auth/register/` | 注册（学生/教师） | `{ username, password, email, role }` | `{ id, username, email, role, created_at }`     |
+| POST | `/api/auth/login/`    | 登录              | `{ username, password }`              | `{ token, user: { id, username, email, role }}` |
+| POST | `/api/auth/logout/`   | 注销              | —                                      | `{ message: "Logged out" }`                     |
+| GET  | `/api/auth/user/`     | 当前用户信息      | —                                      | `{ id, username, email, role, created_at }`     |
+
+---
+
+## 2. 用户管理（仅管理员）
+
+| 方法   | 路径                        | 描述              | 请求体                | 响应体                                          |
+| ------ | --------------------------- | ----------------- | --------------------- | ----------------------------------------------- |
+| GET    | `/api/admin/users/`       | 列出所有用户      | —                    | `[{ id, username, email, role, created_at }]` |
+| PUT    | `/api/admin/users/{uid}/` | 更新用户角色/信息 | `{ email?, role? }` | 更新后的用户对象                                |
+| DELETE | `/api/admin/users/{uid}/` | 删除用户          | —                    | `{ message: "Deleted" }`                      |
+
+---
+
+## 3. 教师档案
+
+### 3.1 列表与检索
+
+| 方法 | 路径               | 描述     | 参数                                          | 响应体                                                                                        |
+| ---- | ------------------ | -------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| GET  | `/api/teachers/` | 教师列表 | `?name=&department=&research_areas=&title=` | `[{ id, user_id, name, department, title, research_areas, homepage_url, avatar_url, bio }]` |
+
+### 3.2 详情、创建、更新、删除
+
+| 方法      | 路径                     | 描述     | 请求体                                                                                       | 响应体                     |
+| --------- | ------------------------ | -------- | -------------------------------------------------------------------------------------------- | -------------------------- |
+| GET       | `/api/teachers/{tid}/` | 教师详情 | —                                                                                           | 单个教师对象               |
+| POST      | `/api/teachers/`       | 新增教师 | `{ user_id, name, department, title?, research_areas?, homepage_url?, avatar_url?, bio? }` | 新建的教师对象             |
+| PUT/PATCH | `/api/teachers/{tid}/` | 更新教师 | 可选字段同 POST                                                                              | 更新后的教师对象           |
+| DELETE    | `/api/teachers/{tid}/` | 删除教师 | —                                                                                           | `{ message: "Deleted" }` |
+
+---
+
+## 4. 日程管理
+
+| 方法      | 路径                                    | 描述         | 请求体                                                  | 响应体                                                                                                |
+| --------- | --------------------------------------- | ------------ | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| GET       | `/api/teachers/{tid}/schedule/`       | 导师所有日程 | —                                                      | `[{ id, teacher_id, start_time, end_time, is_available, external_source, external_id, synced_at }]` |
+| POST      | `/api/teachers/{tid}/schedule/`       | 新建时段     | `{ start_time, end_time, is_available? (默认 true) }` | 新建的时段对象                                                                                        |
+| PUT/PATCH | `/api/teachers/{tid}/schedule/{sid}/` | 更新时段     | `{ start_time?, end_time?, is_available? }`           | 更新后的时段对象                                                                                      |
+| DELETE    | `/api/teachers/{tid}/schedule/{sid}/` | 删除时段     | —                                                      | `{ message: "Deleted" }`                                                                            |
+
+---
+
+## 5. 科研成果管理
+
+| 方法      | 路径                                    | 描述         | 请求体                                                          | 响应体                                                             |
+| --------- | --------------------------------------- | ------------ | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| GET       | `/api/teachers/{tid}/research/`       | 导师成果列表 | —                                                              | `[{ id, teacher_id, title, type, date, description, file_url }]` |
+| POST      | `/api/teachers/{tid}/research/`       | 新增成果     | `{ title, type, date (YYYY-MM-DD), description?, file_url? }` | 新建的成果对象                                                     |
+| PUT/PATCH | `/api/teachers/{tid}/research/{rid}/` | 更新成果     | 可选字段同 POST                                                 | 更新后的成果对象                                                   |
+| DELETE    | `/api/teachers/{tid}/research/{rid}/` | 删除成果     | —                                                              | `{ message: "Deleted" }`                                         |
+
+---
+
+## 6. 全局搜索
+
+| 方法 | 路径                      | 描述           | 参数                                | 响应体       |
+| ---- | ------------------------- | -------------- | ----------------------------------- | ------------ |
+| GET  | `/api/search/teachers/` | 多维度搜索导师 | `?q=&department=&research_areas=` | 教师对象数组 |
+
+---
+
+## 7. 推荐系统
+
+| 方法 | 路径                      | 描述     | 参数                         | 响应体                          |
+| ---- | ------------------------- | -------- | ---------------------------- | ------------------------------- |
+| GET  | `/api/recommendations/` | 推荐导师 | 可选 `?student_id=&limit=` | `[{ teacher: {...}, score }]` |
+
+---
+
+## 8. 预约管理
+
+| 方法      | 路径                         | 描述               | 请求体                                  | 响应体                                                           |
+| --------- | ---------------------------- | ------------------ | --------------------------------------- | ---------------------------------------------------------------- |
+| GET       | `/api/appointments/`       | 我的预约列表       | —                                      | `[{ id, student_id, teacher_id, time_slot, status, remarks }]` |
+| POST      | `/api/appointments/`       | 新建预约           | `{ teacher_id, time_slot, remarks? }` | 新建的预约对象                                                   |
+| GET       | `/api/appointments/{aid}/` | 预约详情           | —                                      | 单个预约对象                                                     |
+| PUT/PATCH | `/api/appointments/{aid}/` | 教师审核（改状态） | `{ status: 'accepted'                   | 'rejected', remarks? }`                                          |
+| DELETE    | `/api/appointments/{aid}/` | 取消预约           | —                                      | `{ message: "Deleted" }`                                       |
+
+---
+
+## 9. 推荐参数与统计（管理员）
+
+| 方法 | 路径                                        | 描述             | 请求体         | 响应体                                                             |
+| ---- | ------------------------------------------- | ---------------- | -------------- | ------------------------------------------------------------------ |
+| GET  | `/api/admin/stats/`                       | 查看系统统计     | —             | `{ total_users, total_teachers, total_apps, search_count, ... }` |
+| GET  | `/api/admin/recommendation/params/`       | 查看推荐算法参数 | —             | `[{ id, factor, weight }]`                                       |
+| PUT  | `/api/admin/recommendation/params/{pid}/` | 更新参数         | `{ weight }` | 更新后的参数对象                                                   |
+
+---
+
+## 10. 外部数据同步（管理员）
+
+| 方法 | 路径                                 | 描述         | 请求体                  | 响应体                                        |
+| ---- | ------------------------------------ | ------------ | ----------------------- | --------------------------------------------- |
+| POST | `/api/admin/sync/externalsources/` | 触发同步     | `{ source: 'gongda'     | 'baidu' }`                                    |
+| GET  | `/api/admin/sync/logs/`            | 同步日志列表 | 可分页 `?page=&size=` | `[{ id, source, status, details, run_at }]` |
+
+---
+
+## 11. 通知
+
+| 方法 | 路径                               | 描述         | 请求体 | 响应体                                           |
+| ---- | ---------------------------------- | ------------ | ------ | ------------------------------------------------ |
+| GET  | `/api/notifications/`            | 我的通知列表 | —     | `[{ id, type, content, is_read, created_at }]` |
+| PUT  | `/api/notifications/{nid}/read/` | 标记为已读   | —     | `{ message: "Marked read" }`                   |
+
+---
+
+以上接口文档完整涵盖了用户故事中的所有功能模块，并兼顾了权限与可维护性。根据实际开发可再补充分页、筛选、排序等细节。
+
+## 12. 举例
+
+在前后端分离架构中，**API 接口（通常是 RESTful API）**充当前端与后端之间通信的桥梁。前端（如 Vue）通过 HTTP 请求向后端（如 Django）发送请求，后端处理业务逻辑并返回数据（通常是 JSON 格式）给前端展示。
+
+---
+
+## ✅ 一、前后端分离中 API 接口作用
+
+* **前端** ：仅负责界面展示与交互逻辑，不直接处理数据库；
+* **后端** ：通过 API 接口处理数据读取、写入、权限校验等，返回前端所需数据；
+* **接口作用** ：让前端无须了解后端实现细节即可使用后端能力。
+
+---
+
+## ✅ 二、示例：教师信息管理系统中的接口调用
+
+### 🎯 场景：学生在前端页面搜索导师
+
+---
+
+### 🌐 示例 API 接口设计（后端 Django DRF）：
+
+```http
+GET /api/teachers/?keyword=人工智能&department=计算机学院
+```
+
+* **方法** ：GET
+* **路径** ：`/api/teachers/`
+* **查询参数** ：
+* `keyword`：关键词（如导师研究方向）
+* `department`：学院
+
+### ✅ 后端 Django 接口代码示例（简化）
+
+```python
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Teacher
+from .serializers import TeacherSerializer
+
+class TeacherListView(APIView):
+    def get(self, request):
+        keyword = request.GET.get('keyword', '')
+        department = request.GET.get('department', '')
+    
+        queryset = Teacher.objects.all()
+        if keyword:
+            queryset = queryset.filter(research_area__icontains=keyword)
+        if department:
+            queryset = queryset.filter(department=department)
+    
+        serializer = TeacherSerializer(queryset, many=True)
+        return Response(serializer.data)
+```
+
+---
+
+### 💻 前端 Vue 调用接口示例（使用 Axios）：
+
+```javascript
+// TeacherSearch.vue
+import axios from 'axios'
+
+export default {
+  data() {
+    return {
+      teachers: [],
+      keyword: '',
+      department: ''
+    }
+  },
+  methods: {
+    searchTeachers() {
+      axios.get('/api/teachers/', {
+        params: {
+          keyword: this.keyword,
+          department: this.department
+        }
+      }).then(response => {
+        this.teachers = response.data
+      }).catch(error => {
+        console.error('搜索失败：', error)
+      })
+    }
+  }
+}
+```
+
+---
+
+### 🧾 接口返回数据示例（JSON）
+
+```json
+[
+  {
+    "id": 1,
+    "name": "李明",
+    "department": "计算机学院",
+    "research_area": "人工智能、深度学习",
+    "email": "liming@example.com"
+  },
+  {
+    "id": 2,
+    "name": "王晓红",
+    "department": "计算机学院",
+    "research_area": "机器学习、数据挖掘",
+    "email": "wangxh@example.com"
+  }
+]
+```
+
+---
 
 
 
