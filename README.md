@@ -101,6 +101,131 @@ django + vue(引用Element ui) + mysql 前后端分离
 > pip freeze > requirements.txt 
 
 
+下面是基于之前用户故事，对整个“教师信息管理系统”所需的前端路由（Vue SPA）和后端 REST API 路由（Django DRF）的设计。路由均遵循 RESTful 规范，便于开发和扩展，同时兼顾用户体验。
+
+---
+
+## 一、前端路由（Vue + Vue-Router）
+
+| 路由路径                     | 组件                | 说明                  |
+| ------------------------ | ----------------- | ------------------- |
+| `/`                      | HomeView          | 系统首页，展示推荐教师、最新通知等   |
+| `/login`                 | LoginView         | 登录页面                |
+| `/register`              | RegisterView      | 注册页面（学生/教师）         |
+| `/teachers`              | TeacherListView   | 导师列表页面，可多维度检索       |
+| `/teachers/:id`          | TeacherDetailView | 导师详情页，包含基本信息、日程、成果等 |
+| `/teachers/:id/schedule` | ScheduleView      | 仅查看/同步该导师的日程        |
+| `/teachers/:id/research` | ResearchView      | 仅查看该导师的基金与科研成果      |
+| `/search`                | SearchView        | 全局搜索页（关键字/学院/研究方向）  |
+| `/recommendations`       | RecommendView     | 根据用户偏好/历史行为的导师推荐    |
+| `/appointments`          | MyAppointments    | 学生：我的预约列表           |
+| `/appointments/new/:tid` | AppointmentForm   | 学生：对导师 `:tid` 发起新预约 |
+| `/appointments/:id`      | AppointmentDetail | 预约详情（学生或教师查看、教师审批）  |
+| `/profile`               | ProfileView       | 当前用户（学生/教师）个人中心     |
+| `/admin`                 | AdminDashboard    | 管理员后台首页             |
+| `/admin/users`           | UserManageView    | 管理学生/教师账号           |
+| `/admin/sync`            | DataSyncView      | 配置外部数据源定时同步         |
+| `/admin/stats`           | StatsView         | 系统统计与推荐算法参数配置       |
+
+---
+
+## 二、后端 REST API 路由（Django REST Framework）
+
+### 1. 教师信息模块 `/api/teachers/`
+
+| 方法        | 路径                    | 说明                    |
+| --------- | --------------------- | --------------------- |
+| GET       | `/api/teachers/`      | 获取导师列表，可通过 query 参数筛选 |
+| POST      | `/api/teachers/`      | 管理员/教师 创建新导师档案        |
+| GET       | `/api/teachers/{id}/` | 获取单个导师基本信息            |
+| PUT/PATCH | `/api/teachers/{id}/` | 更新导师基本信息              |
+| DELETE    | `/api/teachers/{id}/` | 删除导师档案（管理员权限）         |
+
+**支持的查询参数**
+
+* `?name=`
+* `?department=`
+* `?research=`
+* `?title=`
+
+---
+
+### 2. 日程模块 `/api/teachers/{id}/schedule/`
+
+| 方法        | 路径                                           | 说明         |
+| --------- | -------------------------------------------- | ---------- |
+| GET       | `/api/teachers/{id}/schedule/`               | 获取导师所有日程   |
+| POST      | `/api/teachers/{id}/schedule/`               | 教师新建可预约时间段 |
+| PUT/PATCH | `/api/teachers/{id}/schedule/{schedule_id}/` | 更新某条日程     |
+| DELETE    | `/api/teachers/{id}/schedule/{schedule_id}/` | 删除某条日程     |
+
+---
+
+### 3. 科研成果模块 `/api/teachers/{id}/research/`
+
+| 方法        | 路径                                           | 说明            |
+| --------- | -------------------------------------------- | ------------- |
+| GET       | `/api/teachers/{id}/research/`               | 获取导师基金和科研成果列表 |
+| POST      | `/api/teachers/{id}/research/`               | 教师添加新成果/项目    |
+| PUT/PATCH | `/api/teachers/{id}/research/{research_id}/` | 更新某条成果        |
+| DELETE    | `/api/teachers/{id}/research/{research_id}/` | 删除某条成果        |
+
+---
+
+### 4. 教师检索 `/api/search/`
+
+| 方法  | 路径                      | 说明                                           |
+| --- | ----------------------- | -------------------------------------------- |
+| GET | `/api/search/teachers/` | 全局多维度搜索，支持 `q=关键词`、`department=`、`research=` |
+
+---
+
+### 5. 教师推荐 `/api/recommendations/`
+
+| 方法  | 路径                      | 说明                |
+| --- | ----------------------- | ----------------- |
+| GET | `/api/recommendations/` | 根据用户特征/历史行为返回推荐导师 |
+
+---
+
+### 6. 预约模块 `/api/appointments/`
+
+| 方法        | 路径                        | 说明                     |
+| --------- | ------------------------- | ---------------------- |
+| GET       | `/api/appointments/`      | 我的预约列表（学生或教师角色区分）      |
+| POST      | `/api/appointments/`      | 学生对导师发起新预约（请求体包括导师、时间） |
+| GET       | `/api/appointments/{id}/` | 查看某条预约详情               |
+| PUT/PATCH | `/api/appointments/{id}/` | 教师审核：接受/拒绝/改期          |
+| DELETE    | `/api/appointments/{id}/` | 取消预约                   |
+
+---
+
+### 7. 管理与同步 `/api/admin/`
+
+| 方法        | 路径                                        | 说明             |
+| --------- | ----------------------------------------- | -------------- |
+| POST      | `/api/admin/sync/externalsources/`        | 配置并触发外部平台数据同步  |
+| GET       | `/api/admin/users/`                       | 列出所有用户         |
+| PUT/PATCH | `/api/admin/users/{user_id}/permissions/` | 更新用户角色与权限      |
+| GET/PUT   | `/api/admin/stats/`                       | 查看&配置推荐算法与系统统计 |
+
+---
+
+### 8. 其他公共/认证接口
+
+| 方法   | 路径                    | 说明              |
+| ---- | --------------------- | --------------- |
+| POST | `/api/auth/login/`    | 登录，返回 JWT token |
+| POST | `/api/auth/logout/`   | 注销              |
+| POST | `/api/auth/register/` | 注册（学生/教师）       |
+| GET  | `/api/auth/user/`     | 获取当前登录用户信息      |
+
+---
+
+
+
+
+
 
 
 
