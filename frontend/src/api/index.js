@@ -34,4 +34,8 @@ api.interceptors.response.use(
     }
 )
 
+export function getCaptcha() {
+    return api.get('/captcha/')
+}
+
 export default api
