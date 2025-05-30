@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'rest_framework',
     # 添加CORS
     'corsheaders',
+    # 添加teachers应用
+    'teachers',
 ]
 
 MIDDLEWARE = [
