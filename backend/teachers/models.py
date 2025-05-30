@@ -1,82 +1,80 @@
-from django.db import models
-from django.contrib.auth.models import User
-
 # Create your models here.
-class Teacher(models.Model):
-    ''' 教师 '''
-    user = models.OneToOneField(User, on_delete=models.CASCADE) # 关联用户
-    title = models.CharField(max_length=50, verbose_name='职称') # 职称
-    department = models.CharField(max_length=100, verbose_name='所属院系') # 所属院系
-    research_direction = models.TextField(verbose_name='研究方向') # 研究方向
-    introduction = models.TextField(verbose_name='个人简介') # 个人简介
-    created_at = models.DateTimeField(auto_now_add=True) # 创建时间
-    updated_at = models.DateTimeField(auto_now=True) # 更新时间 
+from django.db import models
+from django.contrib.auth.models import AbstractUser
 
-    class Meta: 
-        # 数据库表名
-        verbose_name = '教师' # 别名
-        verbose_name_plural = '教师' # 复数别名
-
-    def __str__(self):
-        # 返回字符串
-        return f"{self.user.username} - {self.title}"
-
-class Schedule(models.Model):
-    ''' 日程 '''
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='schedules') # 关联教师
-    date = models.DateField(verbose_name='日期') # 日期
-    start_time = models.TimeField(verbose_name='开始时间') # 开始时间
-    end_time = models.TimeField(verbose_name='结束时间') # 结束时间
-    is_available = models.BooleanField(default=True, verbose_name='是否可预约') # 是否可预约
-
-    class Meta:
-        # 数据库表名
-        verbose_name = '日程' # 别名
-        verbose_name_plural = '日程' # 复数别名
-
-class ResearchProject(models.Model):
-    ''' 研究项目 '''
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='projects') # 关联教师
-    title = models.CharField(max_length=200, verbose_name='项目名称') # 项目名称
-    funding_source = models.CharField(max_length=100, verbose_name='资金来源') # 资金来源
-    start_date = models.DateField(verbose_name='开始日期') # 开始日期
-    end_date = models.DateField(verbose_name='结束日期') # 结束日期
-    description = models.TextField(verbose_name='项目描述') # 项目描述
-
-    class Meta:
-        # 数据库表名
-        verbose_name = '研究项目' # 别名
-        verbose_name_plural = '研究项目' # 复数别名
-
-class Publication(models.Model):
-    ''' 发表论文 '''
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='publications') # 关联教师
-    title = models.CharField(max_length=200, verbose_name='论文标题') # 论文标题
-    journal = models.CharField(max_length=200, verbose_name='期刊名称') # 期刊名称
-    publication_date = models.DateField(verbose_name='发表日期') # 发表日期
-    citation_count = models.IntegerField(default=0, verbose_name='引用次数') # 引用次数
-
-    class Meta:
-        # 数据库表名
-        verbose_name = '发表论文' # 别名
-        verbose_name_plural = '发表论文' # 复数别名
-
-class Appointment(models.Model):
-    ''' 预约 '''
-    STATUS_CHOICES = [
-        ('pending', '待确认'),
-        ('accepted', '已接受'),
-        ('rejected', '已拒绝'),
-    ]
+# 自定义用户模型
+class User(AbstractUser):
+    ROLE_CHOICES = (
+        ('student', 'Student'),
+        ('teacher', 'Teacher'),
+        ('admin', 'Admin'),
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_appointments') # 关联学生
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='teacher_appointments') # 关联教师
-    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE) # 关联日程
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending') # 状态
-    created_at = models.DateTimeField(auto_now_add=True) # 创建时间
-    updated_at = models.DateTimeField(auto_now=True) # 更新时间
+    # 重写 groups 和 user_permissions 字段，使用不同的 related_name
+    groups = models.ManyToManyField(
+        'auth.Group',
+        verbose_name='groups',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        related_name='custom_user_set',
+        related_query_name='custom_user'
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        verbose_name='user permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_name='custom_user_set',
+        related_query_name='custom_user'
+    )
 
-    class Meta:
-        # 数据库表名
-        verbose_name = '预约' # 别名
-        verbose_name_plural = '预约' # 复数别名
+# 教师信息表
+class Teacher(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    department = models.CharField(max_length=100)
+    title = models.CharField(max_length=50)
+    research_areas = models.TextField()
+    homepage_url = models.URLField(blank=True, null=True)
+    avatar_url = models.URLField(blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+
+# 教师日程表
+class Schedule(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    is_available = models.BooleanField(default=True)
+    external_source = models.CharField(max_length=50, blank=True, null=True)
+    external_id = models.CharField(max_length=100, blank=True, null=True)
+    synced_at = models.DateTimeField(blank=True, null=True)
+
+# 科研成果
+class ResearchAchievement(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    type = models.CharField(max_length=50)  # 论文、项目、基金等
+    date = models.DateField()
+    description = models.TextField(blank=True, null=True)
+    file_url = models.URLField(blank=True, null=True)
+
+# 预约记录
+class Appointment(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    time_slot = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    remarks = models.TextField(blank=True, null=True)
+
+# 通知
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    type = models.CharField(max_length=20)  # system, appointment, etc.
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
