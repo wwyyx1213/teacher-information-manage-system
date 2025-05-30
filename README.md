@@ -1,4 +1,6 @@
-## 项目要求 初始化
+# 项目要求
+
+##  初始化
 
 项目要求使用**虚拟环境**，若不会可参考**附录 1**
 
@@ -100,8 +102,17 @@ django + vue(引用Element ui) + mysql 前后端分离
 
 > pip freeze > requirements.txt 
 
+push到GitHub：
 
-下面是基于之前用户故事，对整个“教师信息管理系统”所需的前端路由（Vue SPA）和后端 REST API 路由（Django DRF）的设计。路由均遵循 RESTful 规范，便于开发和扩展，同时兼顾用户体验。
+> git push origin main 
+
+
+
+
+
+# url 路由
+
+对整个“教师信息管理系统”所需的前端路由（Vue SPA）和后端 REST API 路由（Django DRF）的设计。路由均遵循 RESTful 规范，便于开发和扩展，同时兼顾用户体验。
 
 ---
 
@@ -470,142 +481,352 @@ export default {
 
 
 
-# 数据库预定：
+
 
 ---
 
-### 1. `user` 表
+# sqlite数据库表（已建好）
 
-| 列名          | 数据类型                          | 约束                                  | 说明         |
-| ------------- | --------------------------------- | ------------------------------------- | ------------ |
-| id            | INT AUTO_INCREMENT                | PRIMARY KEY                           | 用户主键     |
-| username      | VARCHAR(50)                       | NOT NULL, UNIQUE                      | 登录名       |
-| password_hash | VARCHAR(255)                      | NOT NULL                              | 密码（哈希） |
-| email         | VARCHAR(100)                      | NOT NULL, UNIQUE                      | 邮箱         |
-| role          | ENUM('student','teacher','admin') | NOT NULL, DEFAULT 'student'           | 用户角色     |
-| created_at    | DATETIME                          | NOT NULL, DEFAULT CURRENT_TIMESTAMP   | 创建时间     |
-| updated_at    | DATETIME                          | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | 修改时间     |
+### 配置settings.py：
 
----
+改根目录**backend\backend**下的**settings.py**：
 
-### 2. `teacher_profile` 表
-
-| 列名           | 数据类型           | 约束                                                  | 说明         |
-| -------------- | ------------------ | ----------------------------------------------------- | ------------ |
-| id             | INT AUTO_INCREMENT | PRIMARY KEY                                           | 教师档案主键 |
-| user_id        | INT                | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE | 关联用户     |
-| name           | VARCHAR(100)       | NOT NULL                                              | 姓名         |
-| department     | VARCHAR(100)       | NOT NULL                                              | 院系         |
-| title          | VARCHAR(50)        | DEFAULT NULL                                          | 职称         |
-| research_areas | TEXT               |                                                       | 研究方向     |
-| homepage_url   | VARCHAR(255)       |                                                       | 外部主页链接 |
-| avatar_url     | VARCHAR(255)       |                                                       | 头像链接     |
-| bio            | TEXT               |                                                       | 个人简介     |
-| created_at     | DATETIME           | NOT NULL, DEFAULT CURRENT_TIMESTAMP                   | 创建时间     |
-| updated_at     | DATETIME           | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                 | 修改时间     |
-
----
-
-### 3. `schedule` 表
-
-| 列名            | 数据类型                            | 约束                                                             | 说明          |
-| --------------- | ----------------------------------- | ---------------------------------------------------------------- | ------------- |
-| id              | INT AUTO_INCREMENT                  | PRIMARY KEY                                                      | 日程主键      |
-| teacher_id      | INT                                 | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 关联教师      |
-| start_time      | DATETIME                            | NOT NULL                                                         | 开始时间      |
-| end_time        | DATETIME                            | NOT NULL                                                         | 结束时间      |
-| is_available    | TINYINT(1)                          | NOT NULL, DEFAULT 1                                              | 是否可预约    |
-| external_source | ENUM('google','outlook','internal') | NOT NULL, DEFAULT 'internal'                                     | 来源          |
-| external_id     | VARCHAR(100)                        | DEFAULT NULL                                                     | 第三方事件 ID |
-| synced_at       | DATETIME                            | DEFAULT NULL                                                     | 同步时间      |
-| created_at      | DATETIME                            | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 创建时间      |
-| updated_at      | DATETIME                            | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                            | 修改时间      |
-
----
-
-### 4. `research_output` 表
-
-| 列名        | 数据类型                                | 约束                                                             | 说明     |
-| ----------- | --------------------------------------- | ---------------------------------------------------------------- | -------- |
-| id          | INT AUTO_INCREMENT                      | PRIMARY KEY                                                      | 成果主键 |
-| teacher_id  | INT                                     | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 关联教师 |
-| title       | VARCHAR(200)                            | NOT NULL                                                         | 标题     |
-| type        | ENUM('grant','paper','project','other') | DEFAULT 'other'                                                  | 类型     |
-| date        | DATE                                    |                                                                  | 时间     |
-| description | TEXT                                    |                                                                  | 描述     |
-| file_url    | VARCHAR(255)                            |                                                                  | 附件链接 |
-| created_at  | DATETIME                                | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 创建时间 |
-| updated_at  | DATETIME                                | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                            | 修改时间 |
-
----
-
-### 5. `appointment` 表
-
-| 列名       | 数据类型                              | 约束                                                             | 说明     |
-| ---------- | ------------------------------------- | ---------------------------------------------------------------- | -------- |
-| id         | INT AUTO_INCREMENT                    | PRIMARY KEY                                                      | 预约主键 |
-| student_id | INT                                   | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE            | 学生     |
-| teacher_id | INT                                   | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 教师     |
-| time_slot  | DATETIME                              | NOT NULL                                                         | 预约时间 |
-| status     | ENUM('pending','accepted','rejected') | NOT NULL, DEFAULT 'pending'                                      | 状态     |
-| remarks    | TEXT                                  |                                                                  | 备注     |
-| created_at | DATETIME                              | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 创建时间 |
-| updated_at | DATETIME                              | NOT NULL, ON UPDATE CURRENT_TIMESTAMP                            | 修改时间 |
-
----
-
-### 6. `recommendation_param` 表
-
-| 列名       | 数据类型           | 约束                                  | 说明     |
-| ---------- | ------------------ | ------------------------------------- | -------- |
-| id         | INT AUTO_INCREMENT | PRIMARY KEY                           | 参数主键 |
-| factor     | VARCHAR(100)       | NOT NULL                              | 因子名称 |
-| weight     | DECIMAL(5,2)       | NOT NULL, DEFAULT 1.00                | 权重     |
-| created_at | DATETIME           | NOT NULL, DEFAULT CURRENT_TIMESTAMP   | 创建时间 |
-| updated_at | DATETIME           | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | 修改时间 |
-
----
-
-### 7. `recommendation_history` 表
-
-| 列名       | 数据类型           | 约束                                                             | 说明         |
-| ---------- | ------------------ | ---------------------------------------------------------------- | ------------ |
-| id         | INT AUTO_INCREMENT | PRIMARY KEY                                                      | 历史记录主键 |
-| student_id | INT                | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE            | 学生         |
-| teacher_id | INT                | NOT NULL, FOREIGN KEY →`teacher_profile(id)`ON DELETE CASCADE | 教师         |
-| score      | DECIMAL(6,4)       | NOT NULL                                                         | 推荐分数     |
-| created_at | DATETIME           | NOT NULL, DEFAULT CURRENT_TIMESTAMP                              | 生成时间     |
-
----
-
-### 8. `external_sync_log` 表
-
-| 列名    | 数据类型                 | 约束                                | 说明               |
-| ------- | ------------------------ | ----------------------------------- | ------------------ |
-| id      | INT AUTO_INCREMENT       | PRIMARY KEY                         | 日志主键           |
-| source  | VARCHAR(50)              | NOT NULL                            | 来源（如工大主页） |
-| status  | ENUM('success','failed') | NOT NULL                            | 同步状态           |
-| details | TEXT                     |                                     | 详情               |
-| run_at  | DATETIME                 | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 同步执行时间       |
-
----
-
-### 9. `notification` 表
-
-| 列名       | 数据类型                              | 约束                                                  | 说明     |
-| ---------- | ------------------------------------- | ----------------------------------------------------- | -------- |
-| id         | INT AUTO_INCREMENT                    | PRIMARY KEY                                           | 通知主键 |
-| user_id    | INT                                   | NOT NULL, FOREIGN KEY →`user(id)`ON DELETE CASCADE | 接收用户 |
-| type       | ENUM('appointment','system','custom') | NOT NULL                                              | 通知类型 |
-| content    | TEXT                                  | NOT NULL                                              | 通知内容 |
-| is_read    | TINYINT(1)                            | NOT NULL, DEFAULT 0                                   | 是否已读 |
-| created_at | DATETIME                              | NOT NULL, DEFAULT CURRENT_TIMESTAMP                   | 生成时间 |
-
----
+```python
+# settings.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'teacher_info_system',
+        'USER': 'admin',
+        'PASSWORD': '456666',
+        'HOST': '192.168.139.1',  # 远程地址
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
+}
+```
 
 
 
+将每个数据库表的字段信息单独展示在表格中的形式：
 
+### User表（学生，教师，管理员均在里面）
+
+| 字段名           | 字段类型                         | 用途                   |
+| ---------------- | -------------------------------- | ---------------------- |
+| role             | CharField(max_length=10)         | 存储用户角色           |
+| groups           | ManyToManyField(auth.Group)      | 存储用户所属的组信息   |
+| user_permissions | ManyToManyField(auth.Permission) | 存储用户特定的权限信息 |
+
+### Teacher表
+
+| 字段名         | 字段类型                         | 用途                     |
+| -------------- | -------------------------------- | ------------------------ |
+| user           | OneToOneField(User)              | 与User模型建立一对一关系 |
+| name           | CharField(max_length=50)         | 存储教师姓名             |
+| department     | CharField(max_length=100)        | 存储教师所在系部         |
+| title          | CharField(max_length=50)         | 存储教师职称             |
+| research_areas | TextField()                      | 存储教师研究领域         |
+| homepage_url   | URLField(blank=True, null=True)  | 存储教师主页URL          |
+| avatar_url     | URLField(blank=True, null=True)  | 存储教师头像URL          |
+| bio            | TextField(blank=True, null=True) | 存储教师简介             |
+
+### Schedule （日程表）
+
+| 字段名          | 字段类型                                         | 用途                          |
+| --------------- | ------------------------------------------------ | ----------------------------- |
+| teacher         | ForeignKey(Teacher)                              | 多对一关系，连接到Teacher模型 |
+| start_time      | DateTimeField()                                  | 存储日程开始时间              |
+| end_time        | DateTimeField()                                  | 存储日程结束时间              |
+| is_available    | BooleanField(default=True)                       | 表示时间段是否可用            |
+| external_source | CharField(max_length=50, blank=True, null=True)  | 存储外部日程来源              |
+| external_id     | CharField(max_length=100, blank=True, null=True) | 存储外部日程ID                |
+| synced_at       | DateTimeField(blank=True, null=True)             | 存储日程同步时间              |
+
+### ResearchAchievement（科研成果表）
+
+| 字段名      | 字段类型                         | 用途                          |
+| ----------- | -------------------------------- | ----------------------------- |
+| teacher     | ForeignKey(Teacher)              | 多对一关系，连接到Teacher模型 |
+| title       | CharField(max_length=200)        | 存储科研成果标题              |
+| type        | CharField(max_length=50)         | 存储科研成果类型              |
+| date        | DateField()                      | 存储科研成果日期              |
+| description | TextField(blank=True, null=True) | 存储科研成果描述              |
+| file_url    | URLField(blank=True, null=True)  | 存储科研成果文件URL           |
+
+### Appointment（预约表）
+
+| 字段名    | 字段类型                         | 用途                          |
+| --------- | -------------------------------- | ----------------------------- |
+| student   | ForeignKey(User)                 | 多对一关系，连接到User模型    |
+| teacher   | ForeignKey(Teacher)              | 多对一关系，连接到Teacher模型 |
+| time_slot | DateTimeField()                  | 存储预约时间段                |
+| status    | CharField(max_length=20)         | 存储预约状态                  |
+| remarks   | TextField(blank=True, null=True) | 存储预约备注                  |
+
+### Notification（通知表）
+
+| 字段名     | 字段类型                         | 用途                       |
+| ---------- | -------------------------------- | -------------------------- |
+| user       | ForeignKey(User)                 | 多对一关系，连接到User模型 |
+| type       | CharField(max_length=20)         | 存储通知类型               |
+| content    | TextField()                      | 存储通知内容               |
+| is_read    | BooleanField(default=False)      | 表示通知是否已读           |
+| created_at | DateTimeField(auto_now_add=True) | 自动记录通知创建时间       |
+
+
+
+# sqlite数据库使用示例（正确）
+
+## 1. 添加操作
+
+```python
+from django.contrib.auth import get_user_model
+from datetime import datetime, timedelta
+from django.utils import timezone
+# 需要看目录结构，如下：
+# backend
+# 	├─backend
+# 	│  └─settings.py
+# 	└─teachers
+#     	├─migrations
+#     	└─models.py
+from teachers.models import Teacher, Schedule, ResearchAchievement, Appointment  # 按需更改
+
+def add_test_data():
+    User = get_user_model()
+
+    # 创建教师账号  User  Teacher
+    t_user = User.objects.create_user(
+        username="zhanglaoshi", 
+        password="123456", 
+        email="zls@example.com", 
+        role="teacher"
+    )
+    teacher = Teacher.objects.create(
+        user=t_user,
+        name="张老师",
+        department="计算机学院",
+        title="教授",
+        research_areas="人工智能，深度学习",
+        homepage_url="http://zls.example.com",
+        avatar_url="http://example.com/avatar.jpg",
+        bio="长期从事AI领域研究"
+    )
+
+    # 创建学生账号  User
+    s_user = User.objects.create_user(
+        username="xiaoming", 
+        password="123456", 
+        email="xm@example.com", 
+        role="student"
+    )
+
+    # 添加日程  Schedule
+    now = timezone.now()
+    Schedule.objects.create(
+        teacher=teacher,
+        start_time=now + timedelta(days=1),
+        end_time=now + timedelta(days=1, hours=1)
+    )
+
+    # 添加科研成果  ResearchAchievement
+    ResearchAchievement.objects.create(
+        teacher=teacher,
+        title="AI in Education",
+        type="论文",
+        date="2024-11-01",
+        description="关于教育AI的研究论文",
+        file_url="http://example.com/paper.pdf"
+    )
+
+    # 学生预约教师  Appointment
+    Appointment.objects.create(
+        student=s_user,
+        teacher=teacher,
+        time_slot=now + timedelta(days=2),
+        remarks="想了解科研方向"
+    )
+
+if __name__ == '__main__':
+    add_test_data()
+    
+# User = get_user_model()
+```
+
+
+
+## 2. 查询操作
+
+```python
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+
+from teachers.models import Teacher, Schedule, ResearchAchievement, Appointment  # 按需更改
+
+User = get_user_model()
+    
+# 查询所有用户
+    users = User.objects.all()
+    print("所有用户：")
+    for user in users:
+        print(f"- {user.username} ({user.role})")
+    
+	# 按角色查询用户
+    teachers = User.objects.filter(role='teacher')
+    print("\n所有教师用户：")
+    for teacher in teachers:
+        print(f"- {teacher.username}")
+        
+# 查询所有教师
+    teachers = Teacher.objects.all()
+    print("所有教师：")
+    for teacher in teachers:
+        print(f"- {teacher.name} ({teacher.title})")
+    
+	# 按部门查询教师
+    cs_teachers = Teacher.objects.filter(department='计算机学院')
+    print("\n计算机学院教师：")
+    for teacher in cs_teachers:
+        print(f"- {teacher.name}")
+        
+# 查询未来一周的日程
+    next_week = timezone.now() + timedelta(days=7)
+    future_schedules = Schedule.objects.filter(
+        start_time__gte=timezone.now(),
+        start_time__lte=next_week
+    )
+    print("未来一周的日程：")
+    for schedule in future_schedules:
+        print(f"- {schedule.teacher.name}: {schedule.start_time} 到 {schedule.end_time}")
+        
+# 查询所有科研成果
+    achievements = ResearchAchievement.objects.all()
+    print("所有科研成果：")
+    for achievement in achievements:
+        print(f"- {achievement.title} ({achievement.type})")
+    
+    # 按类型查询科研成果
+    papers = ResearchAchievement.objects.filter(type='论文')
+    print("\n所有论文：")
+    for paper in papers:
+        print(f"- {paper.title}")
+        
+# 查询所有预约
+    appointments = Appointment.objects.all()
+    print("所有预约：")
+    for appointment in appointments:
+        print(f"- {appointment.student.username} 预约 {appointment.teacher.name}")
+    
+    # 查询待处理的预约
+    pending_appointments = Appointment.objects.filter(status='pending')
+    print("\n待处理的预约：")
+    for appointment in pending_appointments:
+        print(f"- {appointment.student.username} 预约 {appointment.teacher.name}")
+```
+
+
+
+
+
+## 3. 更新操作
+
+```python
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+
+from teachers.models import Teacher, Schedule, ResearchAchievement, Appointment  # 按需更改
+
+User = get_user_model()
+
+# 更新用户信息
+    try:
+        user = User.objects.get(username='zhanglaoshi')
+        user.email = 'new_email@example.com'
+        user.save()
+        print(f"\n更新用户邮箱成功：{user.email}")
+    except User.DoesNotExist:
+        print("\n未找到用户")
+        
+        
+# 更新教师信息
+    try:
+        teacher = Teacher.objects.get(name='张老师')
+        teacher.title = '特聘教授'
+        teacher.save()
+        print(f"\n更新教师职称成功：{teacher.title}")
+    except Teacher.DoesNotExist:
+        print("\n未找到教师")
+        
+# 更新日程状态
+    try:
+        schedule = Schedule.objects.get(id=1)
+        schedule.is_available = False
+        schedule.save()
+        print(f"\n更新日程状态成功：{schedule.is_available}")
+    except Schedule.DoesNotExist:
+        print("\n未找到日程")
+        
+# 更新预约状态
+    try:
+        appointment = Appointment.objects.get(id=1)
+        print(f"\n更新前的状态: {appointment.status}")
+        appointment.status = 'accepted'
+        appointment.save()
+        print(f"更新后的状态: {appointment.status}")
+    except Appointment.DoesNotExist:
+        print("\n未找到预约记录")
+```
+
+
+
+## 4. 删除操作
+
+```python
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+
+from teachers.models import Teacher, Schedule, ResearchAchievement, Appointment  # 按需更改
+
+User = get_user_model()
+
+# 删除特定科研成果
+    try:
+        achievement = ResearchAchievement.objects.get(title='AI in Education')
+        achievement.delete()
+        print("\n删除科研成果成功")
+    except ResearchAchievement.DoesNotExist:
+        print("\n未找到科研成果")
+        
+# 删除特定预约
+    try:
+        appointment = Appointment.objects.get(id=1)
+        appointment.delete()
+        print("\n删除预约成功")
+    except Appointment.DoesNotExist:
+        print("\n未找到预约记录")
+```
+
+
+
+
+
+## 5. 更新 SQLite 数据库
+
+```bash
+# 创建迁移文件
+python manage.py makemigrations
+
+# 应用迁移，创建 SQLite 数据库
+python manage.py migrate
+```
+
+------
+
+## 
 
 
 
@@ -800,18 +1021,6 @@ django-admin startproject 项目名称
       |---wsgi.py # runserver命令就使用wsgiref模块做简单的web server 
 |---manage.py # 管理文件
 ```
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
