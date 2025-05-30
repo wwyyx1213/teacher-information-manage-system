@@ -495,16 +495,21 @@ export default {
 # settings.py
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'teacher_info_system',
-        'USER': 'admin',
-        'PASSWORD': '456666',
-        'HOST': '192.168.139.1',  # 远程地址
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
+	# 使用 sqlite
+	'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+
+	# 使用MySQL
+        # 'ENGINE': 'django.db.backends.mysql',
+        # 'NAME': 'teacher_info_system',
+        # 'USER': 'admin',     # 新创建的用户
+        # 'PASSWORD': '456666', # 您设置的密码
+        # 'HOST': 'localhost',
+        # 'PORT': '3306',
+        # 'OPTIONS': {
+        #     'charset': 'utf8mb4',
+        #     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        # }
     }
 }
 ```
