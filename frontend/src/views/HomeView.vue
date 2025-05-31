@@ -1,7 +1,12 @@
 <script setup>
 // 组件逻辑，后续实现具体功能
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { Search, ArrowRight } from '@element-plus/icons-vue'; // 导入 Element Plus 图标
+import { useUserStore } from '@/stores/user' // 假设你的 Pinia 用户 store 路径
+
+const userStore = useUserStore()
+const router = useRouter()
 
 // 搜索相关的响应式数据和方法（占位符）
 const searchQuery = ref('');
@@ -55,10 +60,21 @@ const goToTeacherDetail = (teacherId) => {
   // TODO: Implement actual navigation
 };
 
+// 退出登录方法（占位符）
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  userStore.logout && userStore.logout() // 如果有 logout 方法
+  router.push('/login')
+};
 </script>
 
 <template>
   <div class="home-container">
+    <!-- 右上角用户信息和退出按钮 -->
+    <div class="user-info-bar">
+      <span class="username">当前用户：{{ userStore.currentUser?.username || '未登录' }}</span>
+      <el-button type="danger" @click="handleLogout" size="small">退出登录</el-button>
+    </div>
     <!-- 欢迎区域 -->
     <el-card class="welcome-card">
       <h1>欢迎使用教师信息管理系统</h1>
@@ -330,6 +346,22 @@ const goToTeacherDetail = (teacherId) => {
    margin: 0 0 3px 0;
    font-size: 0.8em;
    color: #606266;
+}
+
+/* 右上角用户信息栏样式 */
+.user-info-bar {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 10;
+}
+
+.username {
+  font-size: 15px;
+  color: #409eff;
 }
 
 /* 响应式布局 */

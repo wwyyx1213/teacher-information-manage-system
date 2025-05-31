@@ -118,25 +118,28 @@ push到GitHub：
 
 ## 一、前端路由（Vue + Vue-Router）
 
-| 路由路径                     | 组件                | 说明                  |
-| ------------------------ | ----------------- | ------------------- |
-| `/`                      | HomeView          | 系统首页，展示推荐教师、最新通知等   |
-| `/login`                 | LoginView         | 登录页面                |
-| `/register`              | RegisterView      | 注册页面（学生/教师）         |
-| `/teachers`              | TeacherListView   | 导师列表页面，可多维度检索       |
-| `/teachers/:id`          | TeacherDetailView | 导师详情页，包含基本信息、日程、成果等 |
-| `/teachers/:id/schedule` | ScheduleView      | 仅查看/同步该导师的日程        |
-| `/teachers/:id/research` | ResearchView      | 仅查看该导师的基金与科研成果      |
-| `/search`                | SearchView        | 全局搜索页（关键字/学院/研究方向）  |
-| `/recommendations`       | RecommendView     | 根据用户偏好/历史行为的导师推荐    |
-| `/appointments`          | MyAppointments    | 学生：我的预约列表           |
-| `/appointments/new/:tid` | AppointmentForm   | 学生：对导师 `:tid` 发起新预约 |
-| `/appointments/:id`      | AppointmentDetail | 预约详情（学生或教师查看、教师审批）  |
-| `/profile`               | ProfileView       | 当前用户（学生/教师）个人中心     |
-| `/admin`                 | AdminDashboard    | 管理员后台首页             |
-| `/admin/users`           | UserManageView    | 管理学生/教师账号           |
-| `/admin/sync`            | DataSyncView      | 配置外部数据源定时同步         |
-| `/admin/stats`           | StatsView         | 系统统计与推荐算法参数配置       |
+| 路由路径                          | 组件              | 说明                                         |
+| --------------------------------- | ----------------- | -------------------------------------------- |
+| `/`                               | HomeView          | 系统首页，搜索教师，展示推荐教师、最新通知等 |
+| `/login`                          | LoginView         | 登录页面                                     |
+| `/register`                       | RegisterView      | 注册页面（学生/教师）                        |
+|                                   |                   |                                              |
+| 学生                              |                   |                                              |
+| `student/teachers`                | TeacherListView   | 导师列表页面，可多维度检索                   |
+| `/teachers/:id`                   | TeacherDetailView | 导师详情页，包含基本信息、日程、成果等       |
+| student/teachers/:id/appointments | appointmentview   | 预约导师                                     |
+|                                   |                   |                                              |
+| student`/recommendations`         | RecommendView     | 根据用户偏好/历史行为的导师推荐              |
+| student`/myappointments`          | MyAppointments    | 学生：我的预约列表                           |
+|                                   |                   |                                              |
+| 教师功能                          |                   |                                              |
+| teacher/:person                   | person            | 教师个人中心，可以修改自己信息               |
+| teacher/:appointments             | personappointment | 教师查看预约                                 |
+|                                   |                   |                                              |
+| 管理员                            |                   |                                              |
+| `/admin`                          | UserManageView    | 管理学生/教师账号                            |
+| `/admin/sync`                     | DataSyncView      | 配置外部数据源定时同步（先留着）             |
+|                                   |                   |                                              |
 
 ---
 
