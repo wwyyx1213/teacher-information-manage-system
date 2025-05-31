@@ -1,43 +1,60 @@
-from django.shortcuts import render
-
-# Create your views here.
-from rest_framework import viewsets, filters
-from rest_framework.permissions import IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-from .models import Teacher, Schedule, ResearchProject, Publication, Appointment
-from .serializers import (
-    TeacherSerializer, ScheduleSerializer, ResearchProjectSerializer,
-    PublicationSerializer, AppointmentSerializer
-)
+from rest_framework import viewsets, permissions, filters
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.exceptions import PermissionDenied
+from .models import Teacher, Schedule
+from .serializers import TeacherSerializer, ScheduleSerializer
 
 class TeacherViewSet(viewsets.ModelViewSet):
-    ''' 教师 '''
-    queryset = Teacher.objects.all() # 查询集
-    serializer_class = TeacherSerializer # 序列化器
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter] # 过滤器
-    filterset_fields = ['department', 'title'] # 过滤字段
-    search_fields = ['user__username', 'research_direction', 'introduction'] # 搜索字段
+    queryset = Teacher.objects.all()
+    serializer_class = TeacherSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'department', 'title', 'research_areas']
 
-class ScheduleViewSet(viewsets.ModelViewSet):
-    ''' 日程 '''
-    queryset = Schedule.objects.all() # 查询集
-    serializer_class = ScheduleSerializer # 序列化器
-    permission_classes = [IsAuthenticated] # 权限
+    def perform_create(self, serializer):
+        # 创建时自动绑定当前登录用户
+        serializer.save(user=self.request.user)
 
-class ResearchProjectViewSet(viewsets.ModelViewSet):
-    ''' 研究项目 '''
-    queryset = ResearchProject.objects.all() # 查询集
-    serializer_class = ResearchProjectSerializer # 序列化器
-    permission_classes = [IsAuthenticated] # 权限
+    def get_object(self):
+        obj = super().get_object()
+        # 只有教师本人或者管理员能访问/修改信息
+        if obj.user != self.request.user and not self.request.user.is_staff:
+            raise PermissionDenied("无权限访问该教师信息")
+        return obj
 
-class PublicationViewSet(viewsets.ModelViewSet):
-    ''' 发表论文 '''
-    queryset = Publication.objects.all() # 查询集
-    serializer_class = PublicationSerializer # 序列化器
-    permission_classes = [IsAuthenticated] # 权限
+    def update(self, request, *args, **kwargs):
+        # 只允许教师本人修改
+        instance = self.get_object()
+        if instance.user != request.user and not request.user.is_staff:
+            raise PermissionDenied("无权限修改该教师信息")
+        return super().update(request, *args, **kwargs)
 
-class AppointmentViewSet(viewsets.ModelViewSet):
-    ''' 预约 '''
-    queryset = Appointment.objects.all() # 查询集   
-    serializer_class = AppointmentSerializer # 序列化器
-    permission_classes = [IsAuthenticated] # 权限
+    def partial_update(self, request, *args, **kwargs):
+        # 只允许教师本人部分修改
+        instance = self.get_object()
+        if instance.user != request.user and not request.user.is_staff:
+            raise PermissionDenied("无权限修改该教师信息")
+        return super().partial_update(request, *args, **kwargs)
+    
+    # 教师日程子路由
+    @action(detail=True, methods=['get', 'post'], url_path='schedule')
+    def schedule(self, request, pk=None):
+        """
+        GET: 查看指定教师的日程
+        POST: 设置日程（仅教师本人）
+        """
+        teacher = self.get_object()
+
+        if request.method == 'GET':
+            schedules = Schedule.objects.filter(teacher=teacher)
+            serializer = ScheduleSerializer(schedules, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            serializer = ScheduleSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(teacher=teacher)
+                return Response(serializer.data, status=201)
+            return Response(serializer.errors, status=400)
