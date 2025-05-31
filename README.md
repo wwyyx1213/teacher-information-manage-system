@@ -118,28 +118,28 @@ push到GitHub：
 
 ## 一、前端路由（Vue + Vue-Router）
 
-| 路由路径                          | 组件              | 说明                                         |
-| --------------------------------- | ----------------- | -------------------------------------------- |
-| `/`                               | HomeView          | 系统首页，搜索教师，展示推荐教师、最新通知等 |
-| `/login`                          | LoginView         | 登录页面                                     |
-| `/register`                       | RegisterView      | 注册页面（学生/教师）                        |
-|                                   |                   |                                              |
-| 学生                              |                   |                                              |
-| `student/teachers`                | TeacherListView   | 导师列表页面，可多维度检索                   |
-| `/teachers/:id`                   | TeacherDetailView | 导师详情页，包含基本信息、日程、成果等       |
-| student/teachers/:id/appointments | appointmentview   | 预约导师                                     |
-|                                   |                   |                                              |
-| student`/recommendations`         | RecommendView     | 根据用户偏好/历史行为的导师推荐              |
-| student`/myappointments`          | MyAppointments    | 学生：我的预约列表                           |
-|                                   |                   |                                              |
-| 教师功能                          |                   |                                              |
-| teacher/:person                   | person            | 教师个人中心，可以修改自己信息               |
-| teacher/:appointments             | personappointment | 教师查看预约                                 |
-|                                   |                   |                                              |
-| 管理员                            |                   |                                              |
-| `/admin`                          | UserManageView    | 管理学生/教师账号                            |
-| `/admin/sync`                     | DataSyncView      | 配置外部数据源定时同步（先留着）             |
-|                                   |                   |                                              |
+| 路由路径                  | 组件              | 说明                                         |
+| ------------------------- | ----------------- | -------------------------------------------- |
+| `/`                       | HomeView          | 系统首页，搜索教师，展示推荐教师、最新通知等 |
+| `/login`                  | LoginView         | 登录页面                                     |
+| `/register`               | RegisterView      | 注册页面（学生/教师）                        |
+|                           |                   |                                              |
+| 学生                      |                   |                                              |
+| `teachers`                | TeacherListView   | 导师列表页面，可多维度检索                   |
+| `/teachers/:id`           | TeacherDetailView | 导师详情页，包含基本信息、日程、成果等       |
+| teachers/:id/appointments | appointmentview   | 预约导师                                     |
+|                           |                   |                                              |
+| recommendations`          | RecommendView     | 根据用户偏好/历史行为的导师推荐              |
+| myappointments`           | MyAppointments    | 学生：我的预约列表                           |
+|                           |                   |                                              |
+| 教师功能                  |                   |                                              |
+| teacher/:person           | person            | 教师个人中心，可以修改自己信息               |
+| teacher/:appointments     | personappointment | 教师查看预约                                 |
+|                           |                   |                                              |
+| 管理员                    |                   |                                              |
+| `/admin`                  | UserManageView    | 管理学生/教师账号                            |
+| `/admin/sync`             | DataSyncView      | 配置外部数据源定时同步（先留着）             |
+|                           |                   |                                              |
 
 ---
 
@@ -1198,3 +1198,45 @@ django-admin startproject 项目名称
 | 10           | 外部数据源定时同步       | 作为管理员，我希望配置并执行与工大主页、百度知道等外部平台的教师信息定时同步，以保持数据最新。 | 3          | –            |
 | 11           | 推荐算法与统计报表       | 作为管理员，我希望能调整导师推荐算法参数，并查看系统使用统计（搜索热度、预约量、活跃用户），以优化系统效果。 | 1          | –            |
 
+
+
+
+
+
+
+响应体写具体，不能有省略
+
+### GitHub Copilot
+
+
+
+好的，以下是详细的前端接口表，响应体字段全部展开（以常见后端返回结构为例，具体字段请结合你的后端实际返回内容调整）：
+
+| 方法   | 路径                       | 请求体/参数                                                  | 响应体（字段示例）                                           | 说明                  |
+| ------ | -------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | --------------------- |
+| GET    | /teachers/                 | 无                                                           | `[{"id":1,"name":"张三","major":"计算机科学","title":"教授","avatar":"url","bio":"简介","department":"信息学院","research_areas":"人工智能","contact":"123456"}]` | 获取所有教师          |
+| GET    | /teachers/random8/         | 无                                                           | `[{"id":2,"name":"李四","major":"软件工程","title":"副教授","avatar":"url","bio":"简介","department":"软件学院","research_areas":"大数据","contact":"654321"}, ... 共8个]` | 随机8个教师           |
+| GET    | /teachers/recommendations/ | 无                                                           | `[{"id":3,"name":"王五","major":"网络安全","title":"讲师","avatar":"url","bio":"简介","department":"网络学院","research_areas":"安全","contact":"111222","reason":"科研成果突出"}]` | 推荐教师列表          |
+| GET    | /teachers/search/?q=关键词 | 无                                                           | `[{"id":4,"name":"赵六","major":"数据科学","title":"教授","avatar":"url","bio":"简介","department":"数据学院","research_areas":"数据挖掘","contact":"333444"}]` | 按标签/关键词搜索教师 |
+| GET    | /teachers/{id}/            | 无                                                           | `{"id":5,"name":"孙七","major":"人工智能","title":"副教授","avatar":"url","bio":"简介","department":"人工智能学院","research_areas":"机器学习","contact":"555666","education":"博士","work_experience":"10年"}` | 教师详情              |
+| GET    | /teachers/{id}/schedule/   | 无                                                           | `{"busy_dates":["2024-06-01","2024-06-03"],"free_dates":["2024-06-02","2024-06-04"]}` | 教师日程（忙碌/空闲） |
+| GET    | /teachers/{id}/research/   | 无                                                           | `[{"title":"深度学习研究","year":2023,"journal":"AI期刊","summary":"研究内容简介"}]` | 教师科研成果          |
+| GET    | /teacher/profile/          | 无                                                           | `{"id":6,"name":"李老师","job_number":"T1001","department":"信息学院","title":"教授","contact":"888999","bio":"个人简介","avatar":"url"}` | 教师个人信息          |
+| PUT    | /teacher/profile/          | `{"name":"李老师","department":"信息学院","title":"教授","contact":"888999","bio":"个人简介"}` | `{"success":true,"msg":"修改成功"}`                          | 修改教师个人信息      |
+| POST   | /appointments/             | `{"teacher_id":1,"time":"2024-06-10 10:00:00","remarks":"请指导毕设"}` | `{"id":10,"teacher_id":1,"student_id":2,"time":"2024-06-10 10:00:00","status":"待审核","remarks":"请指导毕设"}` | 提交预约              |
+| GET    | /appointments/my/          | 无                                                           | `[{"id":10,"teacher_name":"张三","date":"2024-06-10","time":"10:00-11:00","status":"待审核","remarks":"请指导毕设"}]` | 学生：我的预约        |
+| GET    | /appointments/teacher/     | 无                                                           | `[{"id":11,"student_name":"王小明","date":"2024-06-12","time":"14:00-15:00","status":"已通过","remarks":"讨论项目"}]` | 教师：我的预约        |
+| POST   | /auth/login/               | `{"username":"student1","password":"123456"}`                | `{"token":"jwt-token-string","user":{"id":2,"username":"student1","role":"student","name":"学生甲"}}` | 登录                  |
+| POST   | /auth/register/            | `{"username":"newuser","password":"123456","role":"student","name":"新用户"}` | `{"id":12,"username":"newuser","role":"student","name":"新用户"}` | 注册                  |
+| GET    | /auth/user/                | 无                                                           | `{"id":2,"username":"student1","role":"student","name":"学生甲","email":"student1@school.edu"}` | 当前用户信息          |
+| GET    | /admin/users/              | 无                                                           | `[{"id":2,"username":"student1","role":"student","name":"学生甲","email":"student1@school.edu"}, {"id":6,"username":"teacher1","role":"teacher","name":"李老师","email":"teacher1@school.edu"}]` | 管理员：所有用户      |
+| POST   | /admin/users/              | `{"username":"user2","password":"123456","role":"teacher","name":"李老师","email":"teacher2@school.edu"}` | `{"id":13,"username":"user2","role":"teacher","name":"李老师","email":"teacher2@school.edu"}` | 管理员：新增用户      |
+| DELETE | /admin/users/{id}/         | 无                                                           | `{"success":true,"msg":"删除成功"}`                          | 管理员：删除用户      |
+
+------
+
+**说明：**
+
+- 响应体字段全部展开，便于前后端对接。
+- 字段名称请根据你后端实际返回内容适当调整。
+- 如需补充其它接口，请告知！
