@@ -12,9 +12,11 @@
         <el-form-item label="确认密码" prop="confirmPassword">
           <el-input v-model="registerForm.confirmPassword" type="password" />
         </el-form-item>
-        <el-form-item label="验证码" prop="captcha">
-          <el-input v-model="registerForm.captcha" style="width: 120px; margin-right: 10px;" />
-          <img :src="captchaImg" @click="getCaptcha" style="cursor:pointer;vertical-align: middle;" title="点击刷新验证码" />
+        <el-form-item label="账户类型" prop="role">
+          <el-select v-model="registerForm.role" placeholder="请选择账户类型">
+            <el-option label="学生" value="student" />
+            <el-option label="老师" value="teacher" />
+          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="onRegister">注册</el-button>
@@ -29,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
@@ -40,20 +42,7 @@ const registerForm = ref({
   username: '',
   password: '',
   confirmPassword: '',
-  captcha: ''
-})
-const captchaImg = ref('')
-const captchaId = ref('')
-
-// 获取验证码图片
-const getCaptcha = async () => {
-  const res = await api.get('/captcha/')
-  captchaImg.value = res.data.image  // 后端返回base64图片
-  captchaId.value = res.data.captcha_id
-}
-
-onMounted(() => {
-  getCaptcha()
+  role: ''
 })
 
 const validatePass = (rule, value, callback) => {
@@ -81,7 +70,7 @@ const registerRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ validator: validatePass, trigger: 'blur' }],
   confirmPassword: [{ validator: validatePass2, trigger: 'blur' }],
-  captcha: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+  role: [{ required: true, message: '请选择账户类型', trigger: 'change' }]
 }
 
 const onRegister = () => {
@@ -91,16 +80,13 @@ const onRegister = () => {
         await api.post('/register/', {
           username: registerForm.value.username,
           password: registerForm.value.password,
-          captcha: registerForm.value.captcha,
-          captcha_id: captchaId.value
+          role: registerForm.value.role
         })
         ElMessage.success('注册成功')
         router.push('/login')
-        registerForm.value = { username: '', password: '', confirmPassword: '', captcha: '' }
-        getCaptcha()
+        registerForm.value = { username: '', password: '', confirmPassword: '', role: '' }
       } catch (e) {
         ElMessage.error('注册失败：' + (e.response?.data?.message || '未知错误'))
-        getCaptcha()
       }
     }
   })
@@ -113,7 +99,7 @@ const goLogin = () => {
 
 <style scoped>
 .register-view {
-  min-height: calc(100vh - 60px); /* 60px为NavBar高度，如有不同请调整 */
+  min-height: calc(100vh - 60px);
   display: flex;
   justify-content: center;
   align-items: center;
