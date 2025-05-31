@@ -13,17 +13,23 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="院系">
-              <el-input v-model="searchForm.department" placeholder="请输入院系名称" clearable />
+              <el-select v-model="searchForm.department" placeholder="请选择院系" clearable>
+                <el-option v-for="dept in departments" :key="dept" :label="dept" :value="dept" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="职称">
-              <el-input v-model="searchForm.title" placeholder="请输入职称" clearable />
+              <el-select v-model="searchForm.title" placeholder="请选择职称" clearable>
+                <el-option v-for="title in titles" :key="title" :label="title" :value="title" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="研究方向">
-              <el-input v-model="searchForm.research_areas" placeholder="请输入研究方向" clearable />
+              <el-select v-model="searchForm.research_areas" placeholder="请选择研究方向" clearable filterable>
+                <el-option v-for="area in researchAreas" :key="area" :label="area" :value="area" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -75,6 +81,10 @@ const searchForm = reactive({
   title: '',
   research_areas: ''
 })
+
+const departments = ref(['计算机学院', '数学学院', '物理学院', '化学学院'])
+const titles = ref(['教授', '副教授', '讲师', '助教'])
+const researchAreas = ref(['人工智能', '大数据', '软件工程', '应用数学', '理论物理', '有机化学'])
 
 const handleSearch = async () => {
   try {
