@@ -24,33 +24,35 @@ api.interceptors.request.use(
 
 // 响应拦截器
 api.interceptors.response.use(
-    response => response,
+    response => {
+        return response.data
+    },
     error => {
-        if (error.response && error.response.status === 401) {
-            localStorage.removeItem('token')
-            window.location.href = '/login'
+        if (error.response) {
+            switch (error.response.status) {
+                case 401:
+                    // 未授权，清除token并跳转到登录页
+                    localStorage.removeItem('token')
+                    window.location.href = '/login'
+                    break
+                case 403:
+                    // 权限不足
+                    console.error('权限不足')
+                    break
+                case 404:
+                    // 请求的资源不存在
+                    console.error('请求的资源不存在')
+                    break
+                case 500:
+                    // 服务器错误
+                    console.error('服务器错误')
+                    break
+                default:
+                    console.error('发生错误：', error.response.data)
+            }
         }
         return Promise.reject(error)
     }
 )
 
-export function getCaptcha() {
-    return api.get('/captcha/')
-}
-
-// 登录
-export function login(data) {
-    return api.post('/auth/login/', data)
-}
-
-// 注册
-export function register(data) {
-    return api.post('/auth/register/', data)
-}
-
-// 获取当前用户信息
-export function getCurrentUser() {
-    return api.get('/auth/user/')
-}
-
-export default api
+export default api 
