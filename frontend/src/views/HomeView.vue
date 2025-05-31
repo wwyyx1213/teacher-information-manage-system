@@ -1,9 +1,10 @@
 <script setup>
 // 组件逻辑，后续实现具体功能
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, ArrowRight } from '@element-plus/icons-vue'; // 导入 Element Plus 图标
 import { useUserStore } from '@/stores/user' // 假设你的 Pinia 用户 store 路径
+import api from '@/api'
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -23,25 +24,39 @@ const handleSearch = () => {
   // TODO: Implement actual search logic and navigation
 };
 
-// 推荐教师数据（占位符）
-const recommendedTeachers = ref([
-  { id: 1, name: '推荐教师 A', major: '计算机科学', reason: '该教师在人工智能领域有丰富经验', avatar: 'https://via.placeholder.com/60' },
-  { id: 2, name: '推荐教师 B', major: '软件工程', reason: '活跃于开源社区', avatar: 'https://via.placeholder.com/60' },
-  { id: 3, name: '推荐教师 C', major: '网络安全', reason: '有多个国家级项目', avatar: 'https://via.placeholder.com/60' },
-   { id: 4, name: '推荐教师 D', major: '数据科学', reason: '发表多篇顶会论文', avatar: 'https://via.placeholder.com/60' },
-]);
+// 推荐教师数据（从后端获取，最多显示8个）
+const recommendedTeachers = ref([])
 
-// 教师列表数据（占位符）
-const teacherList = ref([
-  { id: 101, name: '教师 01', gender: '男', major: '计算机科学', title: '教授', contact: '...', avatar: 'https://via.placeholder.com/80' },
-  { id: 102, name: '教师 02', gender: '女', major: '软件工程', title: '副教授', contact: '...', avatar: 'https://via.placeholder.com/80' },
-  { id: 103, name: '教师 03', gender: '男', major: '网络安全', title: '讲师', contact: '...', avatar: 'https://via.placeholder.com/80' },
-  { id: 104, name: '教师 04', gender: '女', major: '数据科学', title: '教授', contact: '...', avatar: 'https://via.placeholder.com/80' },
-   { id: 105, name: '教师 05', gender: '男', major: '计算机科学', title: '副教授', contact: '...', avatar: 'https://via.placeholder.com/80' },
-  { id: 106, name: '教师 06', gender: '女', major: '软件工程', title: '讲师', contact: '...', avatar: 'https://via.placeholder.com/80' },
-  { id: 107, name: '教师 07', gender: '男', major: '网络安全', title: '教授', contact: '...', avatar: 'https://via.placeholder.com/80' },
-  { id: 108, name: '教师 08', gender: '女', major: '数据科学', title: '副教授', contact: '...', avatar: 'https://via.placeholder.com/80' },
-]);
+const fetchRecommendedTeachers = async () => {
+  try {
+    // 假设后端接口为 /teachers/recommendations/
+    const res = await api.get('/teachers/recommendations/')
+    // 只取前8个
+    recommendedTeachers.value = (res.data || res).slice(0, 8)
+  } catch (e) {
+    recommendedTeachers.value = []
+  }
+}
+
+// 教师列表数据（从后端获取，随机8个）
+const teacherList = ref([])
+
+const fetchTeacherList = async () => {
+  try {
+    // 假设后端接口为 /teachers/random8/
+    // 后端返回8个随机老师
+    const res = await api.get('/teachers/random8/')
+    teacherList.value = res.data || res
+  } catch (e) {
+    teacherList.value = []
+  }
+}
+
+onMounted(() => {
+  fetchTeacherList()
+  fetchRecommendedTeachers()
+  // ...如有其他初始化代码...
+})
 
 // 教师列表筛选条件（占位符）
 const filterMajor = ref('');
@@ -87,21 +102,6 @@ const handleLogout = () => {
       </div>
     </el-card>
 
-    <!-- 搜索区域 -->
-    <el-card class="search-card">
-       <div class="search-input-container">
-          <el-input v-model="searchQuery" placeholder="搜索教师" class="search-input">
-             <template #prepend>搜索教师</template>
-             <template #append>
-                <el-select v-model="searchCondition" placeholder="条件" style="width: 100px">
-                   <el-option v-for="condition in searchConditions" :key="condition.value" :label="condition.label" :value="condition.value"></el-option>
-                </el-select>
-             </template>
-          </el-input>
-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-       </div>
-    </el-card>
-
     <!-- 推荐教师区域 -->
     <el-card class="recommended-teachers-card">
       <template #header>
@@ -125,7 +125,6 @@ const handleLogout = () => {
               </template>
               <p>{{ teacher.reason }}</p>
             </el-card>
-             <!-- Add more placeholder cards if needed to test scrolling -->
           </div>
         </el-scrollbar>
       </div>
@@ -134,36 +133,31 @@ const handleLogout = () => {
 
     <!-- 教师列表区域 -->
     <el-card class="teacher-list-card">
-       <template #header>
-          <div class="card-header">
-             <span>教师列表</span>
-             <div class="filter-options">
-                <el-select v-model="filterMajor" placeholder="按专业筛选" clearable @change="handleFilter" style="width: 120px; margin-right: 10px;">
-                   <el-option v-for="major in majors" :key="major" :label="major" :value="major"></el-option>
-                </el-select>
-                 <el-select v-model="filterTitle" placeholder="按职称筛选" clearable @change="handleFilter" style="width: 120px;">
-                   <el-option v-for="title in titles" :key="title" :label="title" :value="title"></el-option>
-                </el-select>
-             </div>
-          </div>
-       </template>
-       <el-row :gutter="20" class="teacher-grid">
-          <el-col :span="6" v-for="teacher in teacherList" :key="teacher.id">
-             <el-card class="teacher-card-grid" shadow="hover" @click="goToTeacherDetail(teacher.id)">
-                <div class="teacher-card-content">
-                   <el-avatar :size="50" :src="teacher.avatar" class="teacher-avatar-grid" />
-                   <div class="teacher-details-grid">
-                      <h3>{{ teacher.name }}</h3>
-                      <p>专业: {{ teacher.major }}</p>
-                      <p>职称: {{ teacher.title }}</p>
-                   </div>
-                </div>
-             </el-card>
-          </el-col>
-       </el-row>
-        <el-empty v-if="teacherList.length === 0" description="暂无教师数据" />
+      <template #header>
+        <div class="card-header">
+          <span>教师列表</span>
+          <el-button type="text" @click="$router.push('/teachers')">
+            查看更多
+            <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+          </el-button>
+        </div>
+      </template>
+      <el-row :gutter="20" class="teacher-grid">
+        <el-col :span="6" v-for="teacher in teacherList" :key="teacher.id">
+          <el-card class="teacher-card-grid" shadow="hover" @click="goToTeacherDetail(teacher.id)">
+            <div class="teacher-card-content">
+              <el-avatar :size="50" :src="teacher.avatar" class="teacher-avatar-grid" />
+              <div class="teacher-details-grid">
+                <h3>{{ teacher.name }}</h3>
+                <p>专业: {{ teacher.major }}</p>
+                <p>职称: {{ teacher.title }}</p>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+      <el-empty v-if="teacherList.length === 0" description="暂无教师数据" />
     </el-card>
-
   </div>
 </template>
 

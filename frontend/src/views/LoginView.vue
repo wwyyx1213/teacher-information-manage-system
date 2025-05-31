@@ -62,9 +62,19 @@ const handleLogin = async () => {
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userStore.login(loginForm)
+        const res = await userStore.login(loginForm)
         ElMessage.success('登录成功')
-        router.push('/')
+        // 判断角色并跳转
+        const role = userStore.role || res?.user?.role
+        if (role === 'student') {
+          router.push('/')
+        } else if (role === 'teacher') {
+          router.push('/teacher/' + (userStore.user?.id || res?.user?.id))
+        } else if (role === 'admin') {
+          router.push('/admin')
+        } else {
+          router.push('/')
+        }
       } catch (error) {
         ElMessage.error(error.response?.data?.message || '登录失败')
       }
@@ -100,4 +110,4 @@ const handleLogin = async () => {
   color: #409eff;
   text-decoration: none;
 }
-</style> 
+</style>
