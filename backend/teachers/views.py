@@ -295,25 +295,43 @@ def get_recommendations(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_teachers(request):
-    query = request.GET.get('q', '')
-    department = request.GET.get('department', '')
-    research_areas = request.GET.get('research_areas', '')
-    
-    teachers = Teacher.objects.all()
-    
-    if query:
-        teachers = teachers.filter(name__icontains=query)
-    if department:
-        teachers = teachers.filter(department__icontains=department)
-    if research_areas:
-        teachers = teachers.filter(research_areas__icontains=research_areas)
+    try:
+        # 获取搜索参数
+        name = request.GET.get('name', '')
+        department = request.GET.get('department', '')
+        title = request.GET.get('title', '')
+        research_areas = request.GET.get('research_areas', '')
+
+        # 构建查询
+        query = Teacher.objects.all()
         
-    data = [{
-        'id': t.id,
-        'name': t.name,
-        'department': t.department,
-        'title': t.title,
-        'research_areas': t.research_areas,
-        'avatar_url': t.avatar_url
-    } for t in teachers]
-    return Response(data) 
+        if name:
+            query = query.filter(name__icontains=name)
+        if department:
+            query = query.filter(department__icontains=department)
+        if title:
+            query = query.filter(title__icontains=title)
+        if research_areas:
+            query = query.filter(research_areas__icontains=research_areas)
+
+        # 获取结果
+        teachers = query.all()
+        data = [{
+            'id': t.id,
+            'name': t.name,
+            'department': t.department,
+            'title': t.title,
+            'research_areas': t.research_areas,
+            'avatar_url': t.avatar_url,
+            'homepage_url': t.homepage_url
+        } for t in teachers]
+
+        return Response({
+            'count': len(data),
+            'results': data
+        })
+
+    except Exception as e:
+        return Response({
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
