@@ -23,7 +23,6 @@ const handleLogout = () => {
       >
         <el-menu-item index="/">教师信息管理系统</el-menu-item>
         <el-menu-item index="/teachers">教师列表</el-menu-item>
-        <el-menu-item index="/search">搜索</el-menu-item>
         <el-menu-item index="/recommendations">推荐教师</el-menu-item>
         <div class="flex-grow" />
         <template v-if="!userStore.isLoggedIn">
@@ -32,7 +31,6 @@ const handleLogout = () => {
         </template>
         <template v-else>
           <el-menu-item index="/appointments">我的预约</el-menu-item>
-          <el-menu-item index="/profile">个人中心</el-menu-item>
           <el-menu-item @click="handleLogout">退出</el-menu-item>
         </template>
       </el-menu>

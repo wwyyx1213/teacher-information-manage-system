@@ -49,6 +49,26 @@ api.interceptors.response.use(
 
 // 教师相关API
 export const teacherApi = {
+    // 获取所有教师
+    getAllTeachers() {
+        return api.get('/teachers/')
+    },
+
+    // 随机获取8个教师
+    getRandomTeachers() {
+        return api.get('/teachers/random8/')
+    },
+
+    // 获取推荐教师
+    getRecommendedTeachers() {
+        return api.get('/teachers/recommendations/')
+    },
+
+    // 搜索教师
+    searchTeachers(keyword) {
+        return api.get(`/teachers/search/?q=${encodeURIComponent(keyword)}`)
+    },
+
     // 获取教师详情
     getTeacherDetail(id) {
         return api.get(`/teachers/${id}/`)
@@ -72,7 +92,15 @@ export const teacherApi = {
     // 提交预约
     submitAppointment(data) {
         return api.post('/appointments/', data)
+    },
+
+    // 教师个人信息（教师端）
+    getTeacherProfile() {
+        return api.get('/teacher/profile/')
+    },
+    updateTeacherProfile(data) {
+        return api.put('/teacher/profile/', data)
     }
 }
 
-export default teacherApi 
+export default teacherApi
