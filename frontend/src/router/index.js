@@ -42,7 +42,7 @@ const router = createRouter({
             path: '/teachers/:id/:appointments',
             name: 'student-appointment',
             component: () =>
-                import ('../views/student/AppointmentView.vue'),
+                import ('../views/student/Appointmentview.vue'),
             props: true
         },
         {
