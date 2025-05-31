@@ -21,16 +21,14 @@ export const useUserStore = defineStore('user', {
         async login(credentials) {
             try {
                 const response = await api.post('/login/', credentials)
-                this.token = response.token
                 this.user = response.user
                 this.role = response.user.role
                 this.isLoggedIn = true
 
-                localStorage.setItem('token', this.token)
                 localStorage.setItem('user', JSON.stringify(this.user))
                 localStorage.setItem('role', this.role)
 
-                ElMessage.success('登录成功')
+                ElMessage.success(response.message || '登录成功')
                 return response
             } catch (error) {
                 this.logout()
@@ -41,7 +39,7 @@ export const useUserStore = defineStore('user', {
         async register(userData) {
             try {
                 const response = await api.post('/register/', userData)
-                ElMessage.success('注册成功')
+                ElMessage.success(response.message || '注册成功')
                 return response
             } catch (error) {
                 throw error
@@ -68,20 +66,14 @@ export const useUserStore = defineStore('user', {
         },
 
         async checkAuth() {
-            const token = localStorage.getItem('token')
-            if (token) {
-                this.token = token
-                try {
-                    const response = await api.get('/user/')
-                    this.user = response
-                    this.role = response.role
-                    this.isLoggedIn = true
-                    localStorage.setItem('user', JSON.stringify(this.user))
-                    localStorage.setItem('role', this.role)
-                } catch (error) {
-                    this.logout()
-                }
-            } else {
+            try {
+                const response = await api.get('/user/')
+                this.user = response
+                this.role = response.role
+                this.isLoggedIn = true
+                localStorage.setItem('user', JSON.stringify(this.user))
+                localStorage.setItem('role', this.role)
+            } catch (error) {
                 this.logout()
             }
         },

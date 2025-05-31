@@ -7,16 +7,13 @@ const api = axios.create({
     timeout: 5000,
     headers: {
         'Content-Type': 'application/json'
-    }
+    },
+    withCredentials: true  // 允许跨域请求携带cookie
 })
 
 // 请求拦截器
 api.interceptors.request.use(
     config => {
-        const token = localStorage.getItem('token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
         return config
     },
     error => {
@@ -34,9 +31,9 @@ api.interceptors.response.use(
         if (error.response) {
             switch (error.response.status) {
                 case 401:
-                    // 未授权，清除token并跳转到登录页
-                    localStorage.removeItem('token')
+                    // 未授权，清除用户信息并跳转到登录页
                     localStorage.removeItem('user')
+                    localStorage.removeItem('role')
                     ElMessage.error('登录已过期，请重新登录')
                     router.push('/login')
                     break
