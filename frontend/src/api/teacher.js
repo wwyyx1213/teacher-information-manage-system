@@ -1,7 +1,7 @@
 import api from './index'
 
 export const teacherApi = {
-    // 获取教师列表
+    // 获取教师列表（支持多条件检索）
     getTeachers(params) {
         return api.get('/teachers/', { params })
     },
@@ -13,21 +13,21 @@ export const teacherApi = {
 
     // 获取教师日程
     getTeacherSchedule(teacherId) {
-        return api.get(`/schedules/`, { params: { teacher: teacherId } })
+        return api.get(`/teachers/${teacherId}/schedule/`)
     },
 
-    // 获取教师项目
-    getTeacherProjects(teacherId) {
-        return api.get(`/projects/`, { params: { teacher: teacherId } })
+    // 新建/同步教师日程
+    syncTeacherSchedule(teacherId, data) {
+        return api.post(`/teachers/${teacherId}/schedule/`, data)
     },
 
-    // 获取教师论文
-    getTeacherPublications(teacherId) {
-        return api.get(`/publications/`, { params: { teacher: teacherId } })
+    // 获取教师科研成果
+    getTeacherResearch(teacherId) {
+        return api.get(`/teachers/${teacherId}/research/`)
     },
 
-    // 创建预约
-    createAppointment(data) {
-        return api.post('/appointments/', data)
+    // 新增科研成果
+    addTeacherResearch(teacherId, data) {
+        return api.post(`/teachers/${teacherId}/research/`, data)
     }
 }
