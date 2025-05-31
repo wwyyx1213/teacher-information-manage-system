@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     # 添加teachers应用
     'teachers',
+
 ]
 
 MIDDLEWARE = [
@@ -164,3 +165,6 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# 添加自定义用户模型配置
+AUTH_USER_MODEL = 'teachers.User'
