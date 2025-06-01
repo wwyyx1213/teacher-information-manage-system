@@ -126,7 +126,7 @@ const fetchRecommendedTeachers = async () => {
   try {
     loadingRecommend.value = true
     const res = await api.get('/recommendations/')
-    recommendedTeachers.value = (res.results || res) // 兼容不同返回结构
+    recommendedTeachers.value = (res.results || res)
   } catch (e) {
     ElMessage.error('获取推荐教师失败')
   } finally {
@@ -228,6 +228,7 @@ onMounted(() => {
 .scrollbar-flex-content {
    display: flex;
    gap: 20px;
+   padding-bottom: 32px;
 }
 .recommended-teachers-list .teacher-card {
    width: 300px;

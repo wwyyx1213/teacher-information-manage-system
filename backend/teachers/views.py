@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.views.decorators.csrf import csrf_exempt
 from .models import User, Teacher, Schedule, ResearchAchievement, Appointment
 import json
+from django.db.models import Count, Q
 
 # 认证相关视图
 @api_view(['POST'])
@@ -307,20 +308,53 @@ def appointment_detail(request, appointment_id):
 
 # 推荐系统视图
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_recommendations(request):
-    # 这里实现推荐算法
-    # 示例：返回所有教师
-    teachers = Teacher.objects.all()[:5]  # 限制返回5个推荐
-    data = [{
-        'id': t.id,
-        'name': t.name,
-        'department': t.department,
-        'title': t.title,
-        'research_areas': t.research_areas,
-        'avatar_url': t.avatar_url
-    } for t in teachers]
-    return Response(data)
+    user = request.user if request.user.is_authenticated else None
+    recommended = []
+    reason = ''
+    # 游客或非学生，推荐科研成果最多的5位教师
+    if not user or not hasattr(user, 'role') or user.role != 'student':
+        teachers = Teacher.objects.annotate(ach_count=Count('researchachievement')).order_by('-ach_count')[:5]
+        for t in teachers:
+            recommended.append({
+                'id': t.id,
+                'name': t.name,
+                'department': t.department,
+                'title': t.title,
+                'research_areas': t.research_areas,
+                'avatar_url': t.avatar_url,
+                'recommend_reason': f"该教师在{t.research_areas.split(',')[0] if t.research_areas else t.department}领域有丰富成果"
+            })
+        return Response({'results': recommended})
+    # 学生，根据其院系/兴趣推荐
+    student_major = getattr(user, 'major', None)
+    student_interest = getattr(user, 'interest', None)
+    # 先按院系推荐
+    teachers = Teacher.objects.all()
+    if student_major:
+        teachers = teachers.filter(department__icontains=student_major)
+        reason = f"与您的专业（{student_major}）相关"
+    elif student_interest:
+        teachers = teachers.filter(Q(research_areas__icontains=student_interest) | Q(department__icontains=student_interest))
+        reason = f"与您的兴趣（{student_interest}）相关"
+    # 若无偏好，退回科研成果最多
+    if not teachers.exists():
+        teachers = Teacher.objects.annotate(ach_count=Count('researchachievement')).order_by('-ach_count')[:5]
+        reason = "科研成果丰富"
+    else:
+        teachers = teachers.annotate(ach_count=Count('researchachievement')).order_by('-ach_count')[:5]
+    for t in teachers:
+        recommended.append({
+            'id': t.id,
+            'name': t.name,
+            'department': t.department,
+            'title': t.title,
+            'research_areas': t.research_areas,
+            'avatar_url': t.avatar_url,
+            'recommend_reason': reason or f"该教师在{t.research_areas.split(',')[0] if t.research_areas else t.department}领域有丰富成果"
+        })
+    return Response({'results': recommended})
 
 # 搜索视图
 @api_view(['GET'])

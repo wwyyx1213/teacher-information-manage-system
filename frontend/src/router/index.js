@@ -46,6 +46,11 @@ const router = createRouter({
       name: 'profile',
       component: () => import('../views/Profile.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/recommendations',
+      name: 'recommendations',
+      component: () => import('../views/RecommendView.vue')
     }
   ]
 })
