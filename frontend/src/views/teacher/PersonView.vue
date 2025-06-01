@@ -9,7 +9,7 @@
           <el-input v-model="form.name" />
         </el-form-item>
         <el-form-item label="工号" prop="job_number">
-          <el-input v-model="form.job_number" disabled />
+          <el-input v-model="form.job_number" />
         </el-form-item>
         <el-form-item label="部门" prop="department">
           <el-input v-model="form.department" />
@@ -34,7 +34,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import api from '@/api'
+import { getTeacherProfile, updateTeacherProfile } from '@/api/teacher'
 
 const form = ref({
   name: '',
@@ -51,31 +51,15 @@ const rules = {
   title: [{ required: true, message: '请输入职称', trigger: 'blur' }]
 }
 
-const fetchProfile = async () => {
-  try {
-    // 假设后端接口为 /teacher/profile/
-    const res = await api.get('/teacher/profile/')
-    Object.assign(form.value, res.data || res)
-  } catch (e) {
-    ElMessage.error('获取个人信息失败')
-  }
-}
+onMounted(async () => {
+  const data = await getTeacherProfile()
+  form.value = data
+})
 
-const onSubmit = () => {
-  formRef.value.validate(async (valid) => {
-    if (valid) {
-      try {
-        // 假设后端接口为 /teacher/profile/
-        await api.put('/teacher/profile/', form.value)
-        ElMessage.success('信息已更新')
-      } catch (e) {
-        ElMessage.error('保存失败')
-      }
-    }
-  })
+const onSubmit = async () => {
+  await updateTeacherProfile(form.value)
+  // 可加提示
 }
-
-onMounted(fetchProfile)
 </script>
 
 <style scoped>

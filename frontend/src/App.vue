@@ -1,6 +1,5 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
 import { useUserStore } from './stores/user'
 import { useRouter } from 'vue-router'
 
@@ -10,6 +9,14 @@ const router = useRouter()
 const handleLogout = () => {
   userStore.logout()
   router.push('/login')
+}
+
+// 跳转到教师个人中心
+const goToProfile = () => {
+  const teacherId = userStore.user?.id
+  if (teacherId) {
+    router.push(`/teacher/${teacherId}`)
+  }
 }
 </script>
 
@@ -30,7 +37,14 @@ const handleLogout = () => {
           <el-menu-item index="/register">注册</el-menu-item>
         </template>
         <template v-else>
-          <el-menu-item index="/appointments">我的预约</el-menu-item>
+          <!-- 仅教师显示个人中心 -->
+          <el-menu-item
+            v-if="userStore.role === 'teacher'"
+            @click="goToProfile"
+          >
+            个人中心
+          </el-menu-item>
+          <el-menu-item index="/appointments" v-if="userStore.role === 'student'">我的预约</el-menu-item>
           <el-menu-item @click="handleLogout">退出</el-menu-item>
         </template>
       </el-menu>

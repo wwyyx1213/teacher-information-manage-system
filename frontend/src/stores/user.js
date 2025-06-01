@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 // import api from '../api' // Remove or clarify if api is needed
 
+// prettier-ignore
 export const useUserStore = defineStore('user', {
     state: () => ({
         user: null,
@@ -21,7 +22,7 @@ export const useUserStore = defineStore('user', {
             try {
                 // Use the correct API endpoint and handle response
                 const response = await axios.post('/api/auth/login/', credentials);
-                this.token = response.data.token;
+                this.token = response.data.access;
                 this.user = response.data.user; // Assuming user details are in response.data.user
                 this.role = response.data.user?.role; // Assuming role is nested in user object
                 this.isLoggedIn = true;
@@ -93,4 +94,4 @@ export const useUserStore = defineStore('user', {
             }
         }
     }
-}) 
+})

@@ -96,10 +96,10 @@ export const teacherApi = {
 
     // 教师个人信息（教师端）
     getTeacherProfile() {
-        return api.get('/teacher/profile/')
+        return api.get('/teachers/profile/').then(res => res.data)
     },
     updateTeacherProfile(data) {
-        return api.put('/teacher/profile/', data)
+        return api.put('/teachers/profile/', data).then(res => res.data)
     }
 }
 
