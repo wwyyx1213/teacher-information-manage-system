@@ -78,7 +78,7 @@
                    <el-avatar :size="50" :src="teacher.avatar_url || teacher.avatar" class="teacher-avatar-grid" />
                    <div class="teacher-details-grid">
                       <h3>{{ teacher.name }}</h3>
-                      <p>专业: {{ teacher.department }}</p>
+                      <p>院系: {{ teacher.department }}</p>
                       <p>职称: {{ teacher.title }}</p>
                    </div>
                 </div>
@@ -106,7 +106,7 @@ const searchQuery = ref('')
 const searchCondition = ref('name')
 const searchConditions = [
   { label: '姓名', value: 'name' },
-  { label: '专业', value: 'department' },
+  { label: '院系', value: 'department' },
   { label: '职称', value: 'title' },
   { label: '研究方向', value: 'research_areas' },
 ]

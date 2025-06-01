@@ -8,7 +8,7 @@ const searchQuery = ref('');
 const searchCondition = ref('name'); // 默认按姓名搜索
 const searchConditions = [
   { label: '姓名', value: 'name' },
-  { label: '专业', value: 'major' },
+  { label: '院系', value: 'major' },
   { label: '职称', value: 'title' },
   { label: '研究方向', value: 'research_areas' },
 ];

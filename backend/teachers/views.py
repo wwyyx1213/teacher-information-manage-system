@@ -115,7 +115,29 @@ def get_user_info(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def teacher_list(request):
-    teachers = Teacher.objects.all()
+    # 获取筛选参数
+    name = request.GET.get('name', '')
+    department = request.GET.get('department', '')
+    title = request.GET.get('title', '')
+    research_areas = request.GET.get('research_areas', '')
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 100))
+
+    # 构建查询
+    query = Teacher.objects.all()
+    if name:
+        query = query.filter(name__icontains=name)
+    if department:
+        query = query.filter(department__icontains=department)
+    if title:
+        query = query.filter(title__icontains=title)
+    if research_areas:
+        query = query.filter(research_areas__icontains=research_areas)
+
+    total = query.count()
+    start = (page - 1) * page_size
+    end = start + page_size
+    teachers = query[start:end]
     data = [{
         'id': t.id,
         'name': t.name,
@@ -124,7 +146,7 @@ def teacher_list(request):
         'research_areas': t.research_areas,
         'avatar_url': t.avatar_url
     } for t in teachers]
-    return Response(data)
+    return Response({'count': total, 'results': data})
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
