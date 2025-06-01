@@ -65,9 +65,15 @@ export default {
               router.push('/student/dashboard')
             } else if (userStore.isTeacher) {
               router.push('/teacher/dashboard')
+            } else {
+              router.push('/')
             }
           } catch (error) {
-            ElMessage.error(error.response?.data?.message || '登录失败')
+            if (error.response?.status === 403) {
+              ElMessage.error('权限不足，请联系管理员')
+            } else {
+              ElMessage.error(error.response?.data?.message || '登录失败')
+            }
           } finally {
             loading.value = false
           }

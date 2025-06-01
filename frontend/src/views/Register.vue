@@ -110,7 +110,11 @@ export default {
             ElMessage.success('注册成功，请登录')
             router.push('/login')
           } catch (error) {
-            ElMessage.error(error.response?.data?.message || '注册失败')
+            if (error.response?.status === 403) {
+              ElMessage.error('权限不足，请联系管理员')
+            } else {
+              ElMessage.error(error.response?.data?.message || '注册失败')
+            }
           } finally {
             loading.value = false
           }

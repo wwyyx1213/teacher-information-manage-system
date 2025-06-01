@@ -14,6 +14,10 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
     config => {
+        // 如果是退出登录请求，确保不携带 cookie
+        if (config.url === '/logout/') {
+            config.withCredentials = false
+        }
         return config
     },
     error => {
@@ -34,6 +38,12 @@ api.interceptors.response.use(
                     // 未授权，清除用户信息并跳转到登录页
                     localStorage.removeItem('user')
                     localStorage.removeItem('role')
+                    localStorage.removeItem('token')
+                    // 清除所有 cookie
+                    document.cookie.split(';').forEach(cookie => {
+                        const [name] = cookie.trim().split('=')
+                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+                    })
                     ElMessage.error('登录已过期，请重新登录')
                     router.push('/login')
                     break

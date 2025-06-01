@@ -24,10 +24,10 @@ export const useUserStore = defineStore('user', {
                 this.user = response.user
                 this.role = response.user.role
                 this.isLoggedIn = true
-
                 localStorage.setItem('user', JSON.stringify(this.user))
                 localStorage.setItem('role', this.role)
-
+                localStorage.setItem('token', 'session')
+                this.token = 'session'
                 ElMessage.success(response.message || '登录成功')
                 return response
             } catch (error) {
@@ -56,12 +56,17 @@ export const useUserStore = defineStore('user', {
                 this.token = null
                 this.isLoggedIn = false
                 this.role = null
-
                 localStorage.removeItem('token')
                 localStorage.removeItem('user')
                 localStorage.removeItem('role')
 
-                router.push('/login')
+                document.cookie.split(';').forEach(cookie => {
+                    const [name] = cookie.trim().split('=')
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+                })
+
+                router.push('/')
+                window.location.reload()
             }
         },
 

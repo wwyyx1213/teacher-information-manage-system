@@ -85,10 +85,19 @@ def login_view(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
+@csrf_exempt
 def logout_view(request):
     logout(request)
-    return Response({'message': '已成功退出登录'})
+    response = Response({'message': '已注销'}, status=200)
+    # 彻底删除sessionid和csrftoken等cookie
+    response.delete_cookie('sessionid', path='/', domain=None)
+    response.delete_cookie('csrftoken', path='/', domain=None)
+    # 兼容部分浏览器的SameSite属性
+    response.set_cookie('sessionid', '', expires=0, path='/', samesite='Lax')
+    response.set_cookie('csrftoken', '', expires=0, path='/', samesite='Lax')
+    request.session.flush()
+    return response
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
