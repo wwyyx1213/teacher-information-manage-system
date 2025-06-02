@@ -60,14 +60,24 @@ export default {
         if (valid) {
           loading.value = true
           try {
+            // 登录
             await userStore.login(loginForm)
+            // 检查用户信息
+            await userStore.checkAuth()
+            
+            // 根据用户角色设置目标路由
+            let targetRoute = '/'
             if (userStore.isStudent) {
-              router.push('/student/dashboard')
+              targetRoute = '/my-appointments'
             } else if (userStore.isTeacher) {
-              router.push('/teacher/dashboard')
-            } else {
-              router.push('/')
+              targetRoute = '/appointments'
             }
+            
+            // 保存目标路由到 localStorage
+            localStorage.setItem('targetRoute', targetRoute)
+            
+            // 刷新页面
+            window.location.reload()
           } catch (error) {
             if (error.response?.status === 403) {
               ElMessage.error('权限不足，请联系管理员')

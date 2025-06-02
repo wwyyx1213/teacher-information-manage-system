@@ -4,7 +4,7 @@ import HelloWorld from './components/HelloWorld.vue'
 import { useUserStore } from './stores/user'
 import { useRouter } from 'vue-router'
 import { Avatar } from '@element-plus/icons-vue'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -20,6 +20,15 @@ const userInitial = computed(() => {
     return userStore.user.username.charAt(0).toUpperCase()
   }
   return '?'
+})
+
+// 检查并处理目标路由
+onMounted(() => {
+  const targetRoute = localStorage.getItem('targetRoute')
+  if (targetRoute) {
+    localStorage.removeItem('targetRoute')
+    router.push(targetRoute)
+  }
 })
 
 </script>
