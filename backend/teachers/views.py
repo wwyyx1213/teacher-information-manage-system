@@ -71,7 +71,7 @@ def login_view(request):
         user = authenticate(username=username, password=password)
         if user is not None:
             login(request, user)
-            return Response({
+            response_data = {
                 'message': '登录成功',
                 'user': {
                     'id': user.id,
@@ -79,12 +79,30 @@ def login_view(request):
                     'email': user.email,
                     'role': user.role
                 }
-            })
+            }
+            
+            # 如果是教师，添加教师相关信息
+            if user.role == 'teacher':
+                try:
+                    teacher = Teacher.objects.get(user=user)
+                    response_data['user'].update({
+                        'name': teacher.name,
+                        'department': teacher.department,
+                        'title': teacher.title,
+                        'research_areas': teacher.research_areas,
+                        'avatar_url': teacher.avatar_url
+                    })
+                except Teacher.DoesNotExist:
+                    pass
+            
+            print("Login response data:", response_data)  # 添加调试日志
+            return Response(response_data)
         else:
             return Response({
                 'message': '用户名或密码错误'
             }, status=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
+        print("Login error:", str(e))  # 添加调试日志
         return Response({
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -161,12 +179,28 @@ def clear_session(request):
 @permission_classes([IsAuthenticated])
 def get_user_info(request):
     user = request.user
-    return Response({
+    response_data = {
         'id': user.id,
         'username': user.username,
         'email': user.email,
         'role': user.role
-    })
+    }
+    
+    # 如果是教师，添加教师相关信息
+    if user.role == 'teacher':
+        try:
+            teacher = Teacher.objects.get(user=user)
+            response_data.update({
+                'name': teacher.name,
+                'department': teacher.department,
+                'title': teacher.title,
+                'research_areas': teacher.research_areas,
+                'avatar_url': teacher.avatar_url
+            })
+        except Teacher.DoesNotExist:
+            pass
+    
+    return Response(response_data)
 
 # 教师相关视图
 @api_view(['GET'])

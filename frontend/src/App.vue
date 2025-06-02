@@ -3,6 +3,8 @@ import { RouterLink, RouterView } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
 import { useUserStore } from './stores/user'
 import { useRouter } from 'vue-router'
+import { Avatar } from '@element-plus/icons-vue'
+import { computed } from 'vue'
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -11,6 +13,15 @@ const handleLogout = () => {
   userStore.logout()
   router.push('/login')
 }
+
+// 计算用户名的首字母作为头像显示
+const userInitial = computed(() => {
+  if (userStore.user && userStore.user.username) {
+    return userStore.user.username.charAt(0).toUpperCase()
+  }
+  return '?'
+})
+
 </script>
 
 <template>
@@ -20,6 +31,7 @@ const handleLogout = () => {
         :router="true"
         mode="horizontal"
         class="nav-menu"
+        :collapse="false"
       >
         <el-menu-item index="/">教师信息管理系统</el-menu-item>
         <el-menu-item index="/teachers">教师列表</el-menu-item>
@@ -32,25 +44,19 @@ const handleLogout = () => {
           <el-menu-item index="/register">注册</el-menu-item>
         </template>
         
-        <!-- 学生用户显示 -->
-        <template v-else-if="userStore.isStudent">
-          <el-menu-item index="/my-appointments">我的预约</el-menu-item>
+        <!-- 已登录用户显示 -->
+        <template v-else>
+          <el-menu-item index="/my-appointments" v-if="userStore.isStudent">我的预约</el-menu-item>
+          <el-menu-item index="/appointments" v-if="userStore.isTeacher">预约管理</el-menu-item>
+          <el-menu-item index="/admin" v-if="userStore.isAdmin">用户管理</el-menu-item>
           <el-menu-item index="/profile">个人中心</el-menu-item>
           <el-menu-item @click="handleLogout">退出</el-menu-item>
-        </template>
-        
-        <!-- 教师用户显示 -->
-        <template v-else-if="userStore.isTeacher">
-          <el-menu-item index="/appointments">预约管理</el-menu-item>
-          <el-menu-item index="/profile">个人中心</el-menu-item>
-          <el-menu-item @click="handleLogout">退出</el-menu-item>
-        </template>
-        
-        <!-- 管理员用户显示 -->
-        <template v-else-if="userStore.isAdmin">
-          <el-menu-item index="/admin">用户管理</el-menu-item>
-          <el-menu-item index="/profile">个人中心</el-menu-item>
-          <el-menu-item @click="handleLogout">退出</el-menu-item>
+          <el-menu-item class="avatar-wrapper">
+            <el-avatar :size="40" class="avatar">
+              {{ userInitial }}
+            </el-avatar>
+            <span class="username">{{ userStore.user?.username }}</span>
+          </el-menu-item>
         </template>
       </el-menu>
     </el-header>
@@ -74,8 +80,8 @@ html, body, #app {
 .layout-container {
   min-height: 100vh;
   width: 100%;
-  display: flex; /* 设置为flex容器 */
-  flex-direction: column; /* 子元素垂直排列 */
+  display: flex;
+  flex-direction: column;
 }
 
 /* 头部样式 */
@@ -88,7 +94,13 @@ html, body, #app {
   right: 0;
   z-index: 1000;
   background-color: #fff;
-  flex-shrink: 0; /* 头部不缩小 */
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.el-header::-webkit-scrollbar {
+  display: none;
 }
 
 /* 导航菜单样式 */
@@ -96,10 +108,52 @@ html, body, #app {
   display: flex;
   align-items: center;
   height: 60px;
+  border-bottom: none;
+  width: auto;
+  min-width: 100%;
+}
+
+.nav-menu .el-menu-item {
+  height: 60px;
+  line-height: 60px;
+  white-space: nowrap;
 }
 
 .flex-grow {
   flex-grow: 1;
+  min-width: 20px;
+}
+
+.avatar-wrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0 10px;
+  height: 60px;
+  transition: background-color 0.3s;
+}
+
+.avatar-wrapper:hover {
+  background-color: #f5f7fa;
+}
+
+.avatar {
+  background-color: #a2b0be;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.username {
+  font-size: 14px;
+  color: #606266;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 主内容区域样式 */
@@ -110,14 +164,16 @@ html, body, #app {
   box-sizing: border-box;
   flex-grow: 1;
   overflow-y: auto;
-  width: 1345px; /* 确保宽度100% */
-  flex-basis: auto; /* 明确设置 flex-basis */
+  width: 1345px;
+  margin: 0 auto;
+  flex-basis: auto;
 }
 
 /* 响应式布局 */
 @media (max-width: 768px) {
   .el-main {
     padding: 70px 0 10px;
+    width: 100%;
   }
 }
 </style>

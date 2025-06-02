@@ -46,16 +46,23 @@ export const useUserStore = defineStore('user', {
                 await clearSession()
 
                 const response = await api.post('/login/', credentials)
-                this.user = response.user
-                this.role = response.user.role
-                this.isLoggedIn = true
-                localStorage.setItem('user', JSON.stringify(this.user))
-                localStorage.setItem('role', this.role)
-                localStorage.setItem('token', 'session')
-                this.token = 'session'
-                ElMessage.success(response.message || '登录成功')
-                return response
+                console.log('Login response:', response) // 添加调试日志
+
+                if (response && response.user) {
+                    this.user = response.user
+                    this.role = response.user.role
+                    this.isLoggedIn = true
+                    localStorage.setItem('user', JSON.stringify(this.user))
+                    localStorage.setItem('role', this.role)
+                    localStorage.setItem('token', 'session')
+                    this.token = 'session'
+                    ElMessage.success(response.message || '登录成功')
+                    return response
+                } else {
+                    throw new Error('登录响应格式错误')
+                }
             } catch (error) {
+                console.error('Login error:', error) // 添加调试日志
                 this.logout()
                 throw error
             }
@@ -106,12 +113,16 @@ export const useUserStore = defineStore('user', {
         async checkAuth() {
             try {
                 const response = await api.get('/user/')
-                this.user = response
-                this.role = response.role
-                this.isLoggedIn = true
-                localStorage.setItem('user', JSON.stringify(this.user))
-                localStorage.setItem('role', this.role)
+                console.log('Check auth response:', response) // 添加调试日志
+                if (response) {
+                    this.user = response
+                    this.role = response.role
+                    this.isLoggedIn = true
+                    localStorage.setItem('user', JSON.stringify(this.user))
+                    localStorage.setItem('role', this.role)
+                }
             } catch (error) {
+                console.error('Check auth error:', error) // 添加调试日志
                 this.logout()
             }
         },
