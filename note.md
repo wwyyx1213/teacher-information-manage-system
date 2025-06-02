@@ -1,6 +1,6 @@
 ## 提示词
 
-请根据项目文档README.md（其中数据库和url不能变）优化项目中首页设计，要求要满足文档内要求，界面要美观，符合人类审美，然后同时请连通前后端间（告诉含API的请求体和响应体），且给出测试步骤，前后端均在当前目录下，backend为后端django，frontend为前端vue（使用element ui）
+请根据项目文档README.md（其中数据库和url不能变）优化项目中【学生预约页面设计http://localhost:5173/teachers/id 的预约部分】，要求要满足文档内要求，界面要美观，符合人类审美，然后同时请连通前后端间（告诉含API的请求体和响应体），且给出测试步骤，前后端均在当前目录下，backend为后端django，frontend为前端vue（使用element ui）
 
 
 
@@ -24,17 +24,55 @@
 
 
 
+  项目文档为README.md（数据库表在文档内），请根据项目文档继续完成项目中学生预约功能，学生预约教师界面（http://localhost:5173/teachers/id界面的预约部分），要求预约时间以下拉菜单展示（预约时间分为：9:00-10:00;10:00-11:00;15:00-16:00;16:00-17:00;19:00-20:00;20:00-21:00），预约状态分为（pending，rejected，accepted）学生提交预约后status变为pending，同步到数据库并以列表显示展现在相应教师的预约管理界面（/appointments，已有代码文件，需完善功能），教师可进行接受和拒绝操作，然后更新数据库表appointment的status字段，如果拒绝就删除数据库中相应记录，将结果分为同意和等待两块展示在学生的我的预约界面（/my-appointments，已有代码文件，需完善功能），被拒绝的不用展示，要求连通前后端间，能够将数据同步到数据库，数据库中过期的预约记录直接自动删除，前后端均在当前目录下，backend为后端django，frontend为前端vue（使用element ui）
+
+
+
+
+
+
+
+
 要求学生用户登录后在点击导航栏的我的预约后显示出学生的具体预约详情
 
 
 
 
 
+## 同步
+
+配置：
+
+```python
+配置celery文件后
+pip install celery redis django-celery-beat django-celery-results
+winget install Redis-x64
+	pip install memurai
+pip install sqlalchemy
+```
+
+
+
+run：
+
+```shell
+ .\venv\Scripts\activate
+cd backend
+redis-server
+
+# 启动 Celery beat（用于定时任务）
+celery -A teachers_manage_system beat -l info
+# 启动 Celery worker（用于清理过期预约）
+celery -A teachers_manage_system worker -l info
+```
 
 
 
 
-注册接口：
+
+
+
+## 注册接口：
 
      POST http://localhost:8000/api/register/
      请求体：
@@ -64,14 +102,14 @@
 ​           }
 ​         }
 ​         
-     {
-        "message": "注册成功",
-        "user": {
-            "id": 15,
-            "username": "ouu",
-            "role": "student"
-        }
-    }
+​     {
+​        "message": "注册成功",
+​        "user": {
+​            "id": 15,
+​            "username": "ouu",
+​            "role": "student"
+​        }
+​    }
 
 
 

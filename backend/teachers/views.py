@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import User, Teacher, Schedule, ResearchAchievement, Appointment
 import json
 from django.db.models import Count, Q
+from datetime import datetime
 
 # 认证相关视图
 @api_view(['POST'])
@@ -325,17 +326,73 @@ def appointment_list(request):
         
     elif request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            data = request.data
             teacher_id = data.get('teacher_id')
             time_slot = data.get('time_slot')
             remarks = data.get('remarks', '')
+            
+            if not all([teacher_id, time_slot]):
+                return Response({
+                    'message': '请提供所有必需的字段'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 验证时间段是否合法
+            try:
+                # 尝试解析 ISO 格式的时间
+                time = datetime.fromisoformat(time_slot.replace('Z', '+00:00'))
+                
+                # 转换为本地时间
+                local_time = time.astimezone()
+                hour = local_time.hour
+                
+                # 验证小时是否在允许的时间段内
+                if hour not in [9, 10, 15, 16, 19, 20]:
+                    return Response({
+                        'message': f'无效的预约时间段：{hour}:00，请选择 9:00、10:00、15:00、16:00、19:00 或 20:00'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # 验证分钟是否为 0
+                if local_time.minute != 0:
+                    return Response({
+                        'message': '预约时间必须是整点'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+            except ValueError as e:
+                return Response({
+                    'message': f'无效的时间格式：{str(e)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 检查是否已经存在相同时间的预约
+            existing_appointment = Appointment.objects.filter(
+                teacher_id=teacher_id,
+                time_slot=time_slot,
+                status__in=['pending', 'accepted']
+            ).exists()
+            
+            if existing_appointment:
+                return Response({
+                    'message': '该时间段已被预约'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 检查是否已经预约过该教师
+            student_existing = Appointment.objects.filter(
+                student=request.user,
+                teacher_id=teacher_id,
+                status__in=['pending', 'accepted']
+            ).exists()
+            
+            if student_existing:
+                return Response({
+                    'message': '您已经预约过该教师'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             teacher = Teacher.objects.get(id=teacher_id)
             appointment = Appointment.objects.create(
                 student=request.user,
                 teacher=teacher,
                 time_slot=time_slot,
-                remarks=remarks
+                remarks=remarks,
+                status='pending'
             )
             
             return Response({
@@ -348,6 +405,10 @@ def appointment_list(request):
                 }
             }, status=status.HTTP_201_CREATED)
             
+        except Teacher.DoesNotExist:
+            return Response({
+                'message': '教师不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({
                 'message': str(e)
@@ -358,6 +419,18 @@ def appointment_list(request):
 def appointment_detail(request, appointment_id):
     try:
         appointment = Appointment.objects.get(id=appointment_id)
+        
+        # 检查权限
+        if request.user.role == 'student' and appointment.student != request.user:
+            return Response({
+                'message': '权限不足'
+            }, status=status.HTTP_403_FORBIDDEN)
+        elif request.user.role == 'teacher':
+            teacher = Teacher.objects.get(user=request.user)
+            if appointment.teacher != teacher:
+                return Response({
+                    'message': '权限不足'
+                }, status=status.HTTP_403_FORBIDDEN)
         
         if request.method == 'GET':
             data = {
@@ -374,17 +447,28 @@ def appointment_detail(request, appointment_id):
             data = json.loads(request.body)
             new_status = data.get('status')
             
-            if new_status in ['accepted', 'rejected']:
+            if new_status not in ['accepted', 'rejected']:
+                return Response({
+                    'message': '无效的状态值'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if request.user.role != 'teacher':
+                return Response({
+                    'message': '只有教师可以更改预约状态'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            if new_status == 'rejected':
+                appointment.delete()
+                return Response({
+                    'message': '预约已拒绝并删除'
+                })
+            else:
                 appointment.status = new_status
                 appointment.save()
                 return Response({
                     'message': '预约状态已更新',
                     'status': appointment.status
                 })
-            else:
-                return Response({
-                    'message': '无效的状态值'
-                }, status=status.HTTP_400_BAD_REQUEST)
                 
     except Appointment.DoesNotExist:
         return Response({

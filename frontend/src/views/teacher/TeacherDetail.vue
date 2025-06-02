@@ -246,14 +246,31 @@ const disabledDate = (time) => {
 
 // 获取可预约时间段
 const availableTimes = computed(() => {
+  const times = [
+    '09:00-10:00',
+    '10:00-11:00',
+    '15:00-16:00',
+    '16:00-17:00',
+    '19:00-20:00',
+    '20:00-21:00'
+  ]
+  
+  // 过滤掉已预约的时间段
   const date = appointmentForm.date
-  if (!date) return []
+  if (!date) return times
   
-  const schedule = getScheduleForDate(date)
-  if (!schedule) return []
+  // 将日期转换为本地日期字符串（YYYY-MM-DD）
+  const localDate = new Date(date).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).replace(/\//g, '-')
   
-  // 这里应该根据实际日程生成时间段
-  return ['09:00-10:00', '10:00-11:00', '14:00-15:00', '15:00-16:00']
+  const bookedTimes = schedules.value
+    .filter(schedule => schedule.start_time.startsWith(localDate))
+    .map(schedule => schedule.time_slot)
+  
+  return times.filter(time => !bookedTimes.includes(time))
 })
 
 // 处理预约
@@ -265,17 +282,38 @@ const handleAppointment = async () => {
 
   try {
     submitting.value = true
-    const timeSlot = `${appointmentForm.date}T${appointmentForm.time.split('-')[0]}:00`
     
-    await api.post('/appointments/', {
+    // 格式化日期和时间
+    const date = new Date(appointmentForm.date)
+    const [startTime] = appointmentForm.time.split('-')
+    const [hours, minutes] = startTime.split(':')
+    
+    // 设置时间（使用本地时间）
+    date.setHours(parseInt(hours))
+    date.setMinutes(parseInt(minutes))
+    date.setSeconds(0)
+    
+    // 转换为 UTC 时间
+    const utcDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    const timeSlot = utcDate.toISOString().split('.')[0]
+    
+    console.log('本地时间：', date.toLocaleString())
+    console.log('发送的预约时间：', timeSlot)
+    
+    const response = await api.post('/appointments/', {
       teacher_id: teacher.value.id,
       time_slot: timeSlot,
       remarks: appointmentForm.remarks
     })
     
-    ElMessage.success('预约成功')
-    router.push('/my-appointments')
+    if (response.message) {
+      ElMessage.success(response.message)
+      router.push('/my-appointments')
+    } else {
+      ElMessage.error('预约失败：服务器响应格式错误')
+    }
   } catch (error) {
+    console.error('预约错误：', error)
     ElMessage.error('预约失败：' + (error.response?.data?.message || error.message))
   } finally {
     submitting.value = false

@@ -174,7 +174,38 @@
 
 # sqlite数据库
 
-### 配置settings.py：
+
+
+## 同步
+
+配置：
+
+```python
+配置celery文件后
+pip install celery redis django-celery-beat django-celery-results
+winget install Redis-x64
+	pip install memurai
+pip install sqlalchemy
+```
+
+
+
+run：
+
+```shell
+ .\venv\Scripts\activate
+cd backend
+redis-server
+
+# 启动 Celery beat（用于定时任务）
+celery -A teachers_manage_system beat -l info
+# 启动 Celery worker（用于清理过期预约）
+celery -A teachers_manage_system worker -l info
+```
+
+
+
+## 配置settings.py：
 
 改根目录**backend\backend**下的**settings.py**：
 
@@ -201,7 +232,7 @@ DATABASES = {
 }
 ```
 
-数据库code：
+## 数据库code：
 
 ```python
 # Create your models here.
