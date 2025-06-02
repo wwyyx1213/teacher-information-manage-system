@@ -23,4 +23,7 @@ urlpatterns = [
     
     # 搜索
     path('search/teachers/', views.search_teachers, name='search_teachers'),
+    
+    # 教师个人中心
+    path('profile/', views.teacher_profile, name='teacher_profile'),
 ] 

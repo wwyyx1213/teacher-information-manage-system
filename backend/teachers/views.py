@@ -12,7 +12,6 @@ from django.db.models import Count, Q
 # 认证相关视图
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@csrf_exempt
 def register(request):
     try:
         data = json.loads(request.body)
@@ -36,9 +35,15 @@ def register(request):
             role=role
         )
 
-        # 根据角色设置用户组
-        group = Group.objects.get(name=role)
-        user.groups.add(group)
+        # 如果是教师角色，创建对应的Teacher记录
+        if role == 'teacher':
+            Teacher.objects.create(
+                user=user,
+                name=username,  # 默认使用用户名作为教师姓名
+                department='未设置',
+                title='未设置',
+                research_areas='未设置'
+            )
 
         return Response({
             'message': '注册成功',
@@ -66,14 +71,13 @@ def login_view(request):
         user = authenticate(username=username, password=password)
         if user is not None:
             login(request, user)
-            group = user.groups.first()
             return Response({
                 'message': '登录成功',
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
-                    'role': group.name if group else None
+                    'role': user.role
                 }
             })
         else:
@@ -87,7 +91,6 @@ def login_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@csrf_exempt
 def logout_view(request):
     logout(request)
     response = Response({'message': '已注销'}, status=200)
@@ -104,12 +107,11 @@ def logout_view(request):
 @permission_classes([IsAuthenticated])
 def get_user_info(request):
     user = request.user
-    group = user.groups.first()
     return Response({
         'id': user.id,
         'username': user.username,
         'email': user.email,
-        'role': group.name if group else None
+        'role': user.role
     })
 
 # 教师相关视图
@@ -212,11 +214,10 @@ def teacher_research(request, teacher_id):
 def appointment_list(request):
     if request.method == 'GET':
         user = request.user
-        group = user.groups.first()
         
-        if group.name == 'student':
+        if user.role == 'student':
             appointments = Appointment.objects.filter(student=user)
-        elif group.name == 'teacher':
+        elif user.role == 'teacher':
             teacher = Teacher.objects.get(user=user)
             appointments = Appointment.objects.filter(teacher=teacher)
         else:
@@ -399,4 +400,48 @@ def search_teachers(request):
     except Exception as e:
         return Response({
             'message': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def teacher_profile(request):
+    user = request.user
+    if not hasattr(user, 'role') or user.role != 'teacher':
+        return Response({'message': '仅教师可访问'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        teacher = Teacher.objects.get(user=user)
+    except Teacher.DoesNotExist:
+        return Response({'message': '教师信息不存在'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        data = {
+            'id': teacher.id,
+            'name': teacher.name,
+            'department': teacher.department,
+            'title': teacher.title,
+            'research_areas': teacher.research_areas,
+            'homepage_url': teacher.homepage_url,
+            'avatar_url': teacher.avatar_url,
+            'bio': teacher.bio
+        }
+        return Response(data)
+    elif request.method == 'PUT':
+        data = request.data if hasattr(request, 'data') else json.loads(request.body)
+        for field in ['name', 'department', 'title', 'research_areas', 'homepage_url', 'avatar_url', 'bio']:
+            if field in data:
+                setattr(teacher, field, data[field])
+        teacher.save()
+        return Response({
+            'message': '个人信息已更新',
+            'teacher': {
+                'id': teacher.id,
+                'name': teacher.name,
+                'department': teacher.department,
+                'title': teacher.title,
+                'research_areas': teacher.research_areas,
+                'homepage_url': teacher.homepage_url,
+                'avatar_url': teacher.avatar_url,
+                'bio': teacher.bio
+            }
+        }) 

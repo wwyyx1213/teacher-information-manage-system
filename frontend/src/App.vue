@@ -25,12 +25,30 @@ const handleLogout = () => {
         <el-menu-item index="/teachers">教师列表</el-menu-item>
         <el-menu-item index="/recommendations">推荐教师</el-menu-item>
         <div class="flex-grow" />
+        
+        <!-- 未登录用户显示 -->
         <template v-if="!userStore.isLoggedIn">
           <el-menu-item index="/login">登录</el-menu-item>
           <el-menu-item index="/register">注册</el-menu-item>
         </template>
-        <template v-else>
-          <el-menu-item index="/appointments">我的预约</el-menu-item>
+        
+        <!-- 学生用户显示 -->
+        <template v-else-if="userStore.isStudent">
+          <el-menu-item index="/my-appointments">我的预约</el-menu-item>
+          <el-menu-item index="/profile">个人中心</el-menu-item>
+          <el-menu-item @click="handleLogout">退出</el-menu-item>
+        </template>
+        
+        <!-- 教师用户显示 -->
+        <template v-else-if="userStore.isTeacher">
+          <el-menu-item index="/appointments">预约管理</el-menu-item>
+          <el-menu-item index="/profile">个人中心</el-menu-item>
+          <el-menu-item @click="handleLogout">退出</el-menu-item>
+        </template>
+        
+        <!-- 管理员用户显示 -->
+        <template v-else-if="userStore.isAdmin">
+          <el-menu-item index="/admin">用户管理</el-menu-item>
           <el-menu-item index="/profile">个人中心</el-menu-item>
           <el-menu-item @click="handleLogout">退出</el-menu-item>
         </template>

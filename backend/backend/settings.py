@@ -63,8 +63,19 @@ MIDDLEWARE = [
 ]
 
 # CORS设置
-CORS_ALLOW_ALL_ORIGINS = True  # 开发环境下允许所有源
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF设置
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+]
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # 允许JavaScript访问CSRF cookie
+CSRF_USE_SESSIONS = False  # 使用cookie而不是session存储CSRF令牌
 
 ROOT_URLCONF = "backend.urls"
 

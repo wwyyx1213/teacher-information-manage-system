@@ -288,6 +288,20 @@ class Notification(models.Model):
 
 
 
+## 更新数据库表
+
+```python
+# 创建迁移文件
+python manage.py makemigrations
+
+# 应用迁移，创建 SQLite 数据库
+python manage.py migrate
+```
+
+
+
+
+
 
 
 # 数据库表

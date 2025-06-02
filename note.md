@@ -8,6 +8,14 @@
 
 
 
+请根据项目文档README.md（其中数据库不能变）内要求完成教师个人中心页面设计，url为：http://localhost:5173/profile，要求在老师注册后自动跳转到个人中心界面（不同老师的个人中心界面内容不一样），其界面内要能够让老师编辑个人信息，在老师提交后将其同步到对应的数据库（数据库表在文档内给出），要求连通前后端间（告诉我含API的请求体和响应体），且给出测试步骤，前后端均在当前目录下，backend为后端django，frontend为前端vue（使用element ui），你可调试运行
+
+
+
+要求学生用户登录后在点击导航栏的我的预约后显示出学生的具体预约详情
+
+
+
 
 
 注册接口：
@@ -26,19 +34,20 @@
        "email": "2689877@qq.com",
        "role": "student"
      }
-     
-     
-     响应体：
-         {
-           "message": "注册成功",
-           "user": {
-             "id": 用户ID,
-             "username": "用户名",
-             "email": "邮箱",
-             "role": "角色"
-           }
-         }
-         
+
+
+​     
+​     响应体：
+​         {
+​           "message": "注册成功",
+​           "user": {
+​             "id": 用户ID,
+​             "username": "用户名",
+​             "email": "邮箱",
+​             "role": "角色"
+​           }
+​         }
+​         
      {
         "message": "注册成功",
         "user": {
@@ -49,7 +58,7 @@
     }
 
 
- 
+
 
 登录接口：
 
@@ -112,4 +121,56 @@
 
 
 
+## 一、后端API
+
+### 1. 获取教师个人信息
+
+- 接口：GET /api/profile/
+
+- 请求头：Authorization: Bearer <token>
+
+- 响应体（示例）：
+
+```json
+  {
+    "id": 1,
+    "name": "张三",
+    "department": "计算机学院",
+    "title": "教授",
+    "research_areas": "人工智能,大数据",
+    "homepage_url": "http://xxx",
+    "avatar_url": "http://xxx",
+    "bio": "人工智能领域专家，我热爱运动、健身、阅读，感兴趣就加入我的课题组"
+  }
+
+```
+
+### 更新教师个人信息
+
+- 接口：PUT /api/profile/
+
+- 请求头：Authorization: Bearer <token>
+
+- 请求体（可选字段，均为字符串）：
+
+```json
+  {
+    "name": "张三",
+    "department": "计算机学院",
+    "title": "教授",
+    "research_areas": "人工智能,大数据",
+    "homepage_url": "http://xxx",
+    "avatar_url": "http://xxx",
+    "bio": "个人简介"
+  }
+```
+
+响应体：
+
+```json
+  {
+    "message": "个人信息已更新",
+    "teacher": { ...同上... }
+  }
+```
 

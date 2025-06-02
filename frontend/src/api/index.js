@@ -11,6 +11,21 @@ const api = axios.create({
     withCredentials: true  // 允许跨域请求携带cookie
 })
 
+// 获取CSRF令牌
+function getCsrfToken() {
+    const name = 'csrftoken='
+    const decodedCookie = decodeURIComponent(document.cookie)
+    const cookieArray = decodedCookie.split(';')
+
+    for (let i = 0; i < cookieArray.length; i++) {
+        let cookie = cookieArray[i].trim()
+        if (cookie.indexOf(name) === 0) {
+            return cookie.substring(name.length, cookie.length)
+        }
+    }
+    return ''
+}
+
 // 请求拦截器
 api.interceptors.request.use(
     config => {
@@ -18,6 +33,15 @@ api.interceptors.request.use(
         if (config.url === '/logout/') {
             config.withCredentials = false
         }
+
+        // 添加CSRF令牌到请求头
+        if (config.method !== 'get') {
+            const csrfToken = getCsrfToken()
+            if (csrfToken) {
+                config.headers['X-CSRFToken'] = csrfToken
+            }
+        }
+
         return config
     },
     error => {

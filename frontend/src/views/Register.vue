@@ -107,8 +107,12 @@ export default {
               password: registerForm.password,
               role: registerForm.role
             })
-            ElMessage.success('注册成功，请登录')
-            router.push('/login')
+            ElMessage.success('注册成功')
+            if (registerForm.role === 'teacher') {
+              router.push('/profile')
+            } else {
+              router.push('/login')
+            }
           } catch (error) {
             if (error.response?.status === 403) {
               ElMessage.error('权限不足，请联系管理员')
