@@ -103,25 +103,57 @@ def logout_view(request):
     
     # 清除所有相关的cookie
     cookies_to_clear = ['sessionid', 'csrftoken']
+    domains = [None, 'localhost']  # 尝试不同的domain
+    
     for cookie in cookies_to_clear:
-        # 删除cookie
-        response.delete_cookie(
-            cookie,
-            path='/',
-            domain=None,
-            samesite='Lax'
-        )
-        # 设置过期时间为过去的时间
-        response.set_cookie(
-            cookie,
-            '',
-            expires='Thu, 01 Jan 1970 00:00:00 GMT',
-            path='/',
-            domain=None,
-            samesite='Lax',
-            secure=False,  # 开发环境设为False
-            httponly=True if cookie == 'sessionid' else False
-        )
+        for domain in domains:
+            # 删除cookie
+            response.delete_cookie(
+                cookie,
+                path='/',
+                domain=domain,
+                samesite='Lax'
+            )
+            # 设置过期时间为过去的时间
+            response.set_cookie(
+                cookie,
+                '',
+                expires='Thu, 01 Jan 1970 00:00:00 GMT',
+                path='/',
+                domain=domain,
+                samesite='Lax',
+                secure=False,
+                httponly=True if cookie == 'sessionid' else False
+            )
+    
+    return response
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def clear_session(request):
+    """专门用于清除session的端点"""
+    request.session.flush()
+    request.session.delete()
+    
+    response = Response({'message': 'Session已清除'}, status=200)
+    
+    # 清除sessionid cookie
+    response.delete_cookie(
+        'sessionid',
+        path='/',
+        domain=None,
+        samesite='Lax'
+    )
+    response.set_cookie(
+        'sessionid',
+        '',
+        expires='Thu, 01 Jan 1970 00:00:00 GMT',
+        path='/',
+        domain=None,
+        samesite='Lax',
+        secure=False,
+        httponly=True
+    )
     
     return response
 

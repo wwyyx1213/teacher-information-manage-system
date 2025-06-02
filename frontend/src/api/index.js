@@ -29,12 +29,6 @@ function getCsrfToken() {
 // 请求拦截器
 api.interceptors.request.use(
     config => {
-        // 如果是退出登录请求，确保不携带 cookie
-        if (config.url === '/logout/') {
-            config.withCredentials = false
-            return config
-        }
-
         // 添加CSRF令牌到请求头
         if (config.method !== 'get') {
             const csrfToken = getCsrfToken()

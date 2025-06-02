@@ -3,6 +3,28 @@ import api from '../api'
 import { ElMessage } from 'element-plus'
 import router from '../router'
 
+// 清除所有cookie的函数
+const clearAllCookies = () => {
+    const cookies = document.cookie.split(';')
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i]
+        const eqPos = cookie.indexOf('=')
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname};`
+    }
+}
+
+// 清除session的函数
+const clearSession = async () => {
+    try {
+        await api.post('/clear-session/')
+        clearAllCookies()
+    } catch (error) {
+        console.error('Clear session error:', error)
+        clearAllCookies()
+    }
+}
+
 export const useUserStore = defineStore('user', {
     state: () => ({
         user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -20,6 +42,9 @@ export const useUserStore = defineStore('user', {
     actions: {
         async login(credentials) {
             try {
+                // 在登录前先清除所有session
+                await clearSession()
+
                 const response = await api.post('/login/', credentials)
                 this.user = response.user
                 this.role = response.user.role
@@ -54,13 +79,7 @@ export const useUserStore = defineStore('user', {
                 sessionStorage.clear()
 
                 // 清除所有cookie
-                const cookies = document.cookie.split(';')
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i]
-                    const eqPos = cookie.indexOf('=')
-                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
-                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname};`
-                }
+                clearAllCookies()
 
                 // 重置状态
                 this.user = null
@@ -75,6 +94,7 @@ export const useUserStore = defineStore('user', {
                 // 即使API调用失败，也清除本地状态
                 localStorage.clear()
                 sessionStorage.clear()
+                clearAllCookies()
                 this.user = null
                 this.role = null
                 this.isLoggedIn = false

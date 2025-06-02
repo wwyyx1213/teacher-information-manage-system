@@ -26,4 +26,5 @@ urlpatterns = [
     
     # 教师个人中心
     path('profile/', views.teacher_profile, name='teacher_profile'),
+    path('clear-session/', views.clear_session, name='clear-session'),
 ] 
