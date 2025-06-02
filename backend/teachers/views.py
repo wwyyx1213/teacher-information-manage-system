@@ -92,15 +92,37 @@ def login_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def logout_view(request):
-    logout(request)
-    response = Response({'message': '已注销'}, status=200)
-    # 彻底删除sessionid和csrftoken等cookie
-    response.delete_cookie('sessionid', path='/', domain=None)
-    response.delete_cookie('csrftoken', path='/', domain=None)
-    # 兼容部分浏览器的SameSite属性
-    response.set_cookie('sessionid', '', expires=0, path='/', samesite='Lax')
-    response.set_cookie('csrftoken', '', expires=0, path='/', samesite='Lax')
+    # 清除所有会话数据
     request.session.flush()
+    request.session.delete()
+    
+    # 执行登出
+    logout(request)
+    
+    response = Response({'message': '已注销'}, status=200)
+    
+    # 清除所有相关的cookie
+    cookies_to_clear = ['sessionid', 'csrftoken']
+    for cookie in cookies_to_clear:
+        # 删除cookie
+        response.delete_cookie(
+            cookie,
+            path='/',
+            domain=None,
+            samesite='Lax'
+        )
+        # 设置过期时间为过去的时间
+        response.set_cookie(
+            cookie,
+            '',
+            expires='Thu, 01 Jan 1970 00:00:00 GMT',
+            path='/',
+            domain=None,
+            samesite='Lax',
+            secure=False,  # 开发环境设为False
+            httponly=True if cookie == 'sessionid' else False
+        )
+    
     return response
 
 @api_view(['GET'])

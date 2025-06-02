@@ -32,6 +32,7 @@ api.interceptors.request.use(
         // 如果是退出登录请求，确保不携带 cookie
         if (config.url === '/logout/') {
             config.withCredentials = false
+            return config
         }
 
         // 添加CSRF令牌到请求头
@@ -59,14 +60,11 @@ api.interceptors.response.use(
         if (error.response) {
             switch (error.response.status) {
                 case 401:
-                    // 未授权，清除用户信息并跳转到登录页
-                    localStorage.removeItem('user')
-                    localStorage.removeItem('role')
-                    localStorage.removeItem('token')
-                    // 清除所有 cookie
+                    // 未授权，清除所有状态
+                    localStorage.clear()
                     document.cookie.split(';').forEach(cookie => {
                         const [name] = cookie.trim().split('=')
-                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`
                     })
                     ElMessage.error('登录已过期，请重新登录')
                     router.push('/login')

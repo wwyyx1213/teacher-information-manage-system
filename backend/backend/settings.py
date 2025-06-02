@@ -179,3 +179,21 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # 添加自定义用户模型配置
 AUTH_USER_MODEL = 'teachers.User'
+
+# Session配置
+SESSION_COOKIE_AGE = 86400  # 24小时
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # 关闭浏览器时清除session
+SESSION_COOKIE_NAME = 'sessionid'
+SESSION_COOKIE_DOMAIN = None
+SESSION_COOKIE_SECURE = False  # 开发环境设为False，生产环境建议设为True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True  # 每次请求都更新session过期时间
+
+# CSRF配置
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_DOMAIN = None
+CSRF_COOKIE_SECURE = False  # 开发环境设为False，生产环境建议设为True
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = False

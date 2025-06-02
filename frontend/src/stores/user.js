@@ -49,24 +49,37 @@ export const useUserStore = defineStore('user', {
         async logout() {
             try {
                 await api.post('/logout/')
+                // 清除所有本地存储
+                localStorage.clear()
+                sessionStorage.clear()
+
+                // 清除所有cookie
+                const cookies = document.cookie.split(';')
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i]
+                    const eqPos = cookie.indexOf('=')
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname};`
+                }
+
+                // 重置状态
+                this.user = null
+                this.role = null
+                this.isLoggedIn = false
+                this.token = null
+
+                // 强制刷新页面以确保所有状态都被清除
+                window.location.href = '/'
             } catch (error) {
                 console.error('Logout error:', error)
-            } finally {
+                // 即使API调用失败，也清除本地状态
+                localStorage.clear()
+                sessionStorage.clear()
                 this.user = null
-                this.token = null
-                this.isLoggedIn = false
                 this.role = null
-                localStorage.removeItem('token')
-                localStorage.removeItem('user')
-                localStorage.removeItem('role')
-
-                document.cookie.split(';').forEach(cookie => {
-                    const [name] = cookie.trim().split('=')
-                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-                })
-
-                router.push('/')
-                window.location.reload()
+                this.isLoggedIn = false
+                this.token = null
+                window.location.href = '/'
             }
         },
 
