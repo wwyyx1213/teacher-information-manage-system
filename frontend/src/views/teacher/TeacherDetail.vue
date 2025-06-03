@@ -47,11 +47,20 @@
               </div>
             </template>
             <div class="schedule-content">
-              <el-calendar v-model="currentDate">
+              <el-calendar v-model="currentDate" :first-day-of-week="1">
                 <template #dateCell="{ data }">
                   <div class="calendar-cell">
-                    <p>{{ data.day.split('-').slice(2).join('') }}</p>
-                    <div v-if="getScheduleForDate(data.day)" class="schedule-dot"></div>
+                    <p :class="data.isSelected ? 'is-selected' : ''">
+                      {{ data.day.split('-').slice(1).join('-') }}
+                    </p>
+                    <div class="time-slots">
+                      <div v-for="slot in getTimeSlots(data.day)" :key="slot.time" class="time-slot">
+                        <span class="time">{{ slot.time }}</span>
+                        <el-tag :type="slot.status === 'available' ? 'success' : 'info'" size="small">
+                          {{ slot.status === 'available' ? '可预约' : '已预约' }}
+                        </el-tag>
+                      </div>
+                    </div>
                   </div>
                 </template>
               </el-calendar>
@@ -148,6 +157,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import api from '../../api'
 import { ElMessage } from 'element-plus'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,6 +168,7 @@ const submitting = ref(false)
 const activeTab = ref('basic')
 const currentDate = ref(new Date())
 const isFollowing = ref(false)
+const locale = zhCn
 
 const teacher = ref({})
 const achievements = ref([])
@@ -395,12 +406,16 @@ onMounted(() => {
   align-items: center;
 }
 
-.schedule-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #409EFF;
-  border-radius: 50%;
-  margin-top: 4px;
+.time-slots {
+  margin-top: 5px;
+}
+
+.time-slot {
+  margin-bottom: 5px;
+}
+
+.time {
+  margin-right: 10px;
 }
 
 .research-content {
