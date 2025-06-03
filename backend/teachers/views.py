@@ -694,4 +694,259 @@ def teacher_profile(request):
                 'avatar_url': teacher.avatar_url,
                 'bio': teacher.bio
             }
-        }) 
+        })
+
+# 教师个人中心的日程管理
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def teacher_schedule_management(request):
+    if not hasattr(request.user, 'role') or request.user.role != 'teacher':
+        return Response({'message': '仅教师可访问'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        return Response({'message': '教师信息不存在'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        schedules = Schedule.objects.filter(teacher=teacher).order_by('start_time')
+        data = [{
+            'id': s.id,
+            'start_time': s.start_time,
+            'end_time': s.end_time,
+            'is_available': s.is_available
+        } for s in schedules]
+        return Response(data)
+    
+    elif request.method == 'POST':
+        data = request.data
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        is_available = data.get('is_available', True)
+        
+        if not all([start_time, end_time]):
+            return Response({
+                'message': '请提供开始时间和结束时间'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # 验证时间格式
+            start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            
+            # 检查时间冲突
+            conflicting = Schedule.objects.filter(
+                teacher=teacher,
+                start_time__lt=end_time,
+                end_time__gt=start_time
+            ).exists()
+            
+            if conflicting:
+                return Response({
+                    'message': '该时间段与已有日程冲突'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            schedule = Schedule.objects.create(
+                teacher=teacher,
+                start_time=start_time,
+                end_time=end_time,
+                is_available=is_available
+            )
+            
+            return Response({
+                'id': schedule.id,
+                'start_time': schedule.start_time,
+                'end_time': schedule.end_time,
+                'is_available': schedule.is_available
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e:
+            return Response({
+                'message': f'无效的时间格式：{str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def teacher_schedule_detail(request, schedule_id):
+    if not hasattr(request.user, 'role') or request.user.role != 'teacher':
+        return Response({'message': '仅教师可访问'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        schedule = Schedule.objects.get(id=schedule_id, teacher=teacher)
+    except Teacher.DoesNotExist:
+        return Response({'message': '教师信息不存在'}, status=status.HTTP_404_NOT_FOUND)
+    except Schedule.DoesNotExist:
+        return Response({'message': '日程不存在'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'PUT':
+        data = request.data
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        is_available = data.get('is_available')
+        
+        if not all([start_time, end_time]):
+            return Response({
+                'message': '请提供开始时间和结束时间'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # 验证时间格式
+            start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            
+            # 检查时间冲突（排除自身）
+            conflicting = Schedule.objects.filter(
+                teacher=teacher,
+                start_time__lt=end_time,
+                end_time__gt=start_time
+            ).exclude(id=schedule_id).exists()
+            
+            if conflicting:
+                return Response({
+                    'message': '该时间段与已有日程冲突'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            schedule.start_time = start_time
+            schedule.end_time = end_time
+            if is_available is not None:
+                schedule.is_available = is_available
+            schedule.save()
+            
+            return Response({
+                'id': schedule.id,
+                'start_time': schedule.start_time,
+                'end_time': schedule.end_time,
+                'is_available': schedule.is_available
+            })
+            
+        except ValueError as e:
+            return Response({
+                'message': f'无效的时间格式：{str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        schedule.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# 教师个人中心的成果管理
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def teacher_achievement_management(request):
+    if not hasattr(request.user, 'role') or request.user.role != 'teacher':
+        return Response({'message': '仅教师可访问'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        return Response({'message': '教师信息不存在'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        achievements = ResearchAchievement.objects.filter(teacher=teacher).order_by('-date')
+        data = [{
+            'id': a.id,
+            'title': a.title,
+            'type': a.type,
+            'date': a.date,
+            'description': a.description,
+            'file_url': a.file_url
+        } for a in achievements]
+        return Response(data)
+    
+    elif request.method == 'POST':
+        data = request.data
+        title = data.get('title')
+        type = data.get('type')
+        date = data.get('date')
+        description = data.get('description', '')
+        file_url = data.get('file_url', '')
+        
+        if not all([title, type, date]):
+            return Response({
+                'message': '请提供标题、类型和日期'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # 验证日期格式
+            date = datetime.strptime(date, '%Y-%m-%d').date()
+            
+            achievement = ResearchAchievement.objects.create(
+                teacher=teacher,
+                title=title,
+                type=type,
+                date=date,
+                description=description,
+                file_url=file_url
+            )
+            
+            return Response({
+                'id': achievement.id,
+                'title': achievement.title,
+                'type': achievement.type,
+                'date': achievement.date,
+                'description': achievement.description,
+                'file_url': achievement.file_url
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e:
+            return Response({
+                'message': f'无效的日期格式：{str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def teacher_achievement_detail(request, achievement_id):
+    if not hasattr(request.user, 'role') or request.user.role != 'teacher':
+        return Response({'message': '仅教师可访问'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        achievement = ResearchAchievement.objects.get(id=achievement_id, teacher=teacher)
+    except Teacher.DoesNotExist:
+        return Response({'message': '教师信息不存在'}, status=status.HTTP_404_NOT_FOUND)
+    except ResearchAchievement.DoesNotExist:
+        return Response({'message': '成果不存在'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'PUT':
+        data = request.data
+        title = data.get('title')
+        type = data.get('type')
+        date = data.get('date')
+        description = data.get('description')
+        file_url = data.get('file_url')
+        
+        if not all([title, type, date]):
+            return Response({
+                'message': '请提供标题、类型和日期'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # 验证日期格式
+            date = datetime.strptime(date, '%Y-%m-%d').date()
+            
+            achievement.title = title
+            achievement.type = type
+            achievement.date = date
+            if description is not None:
+                achievement.description = description
+            if file_url is not None:
+                achievement.file_url = file_url
+            achievement.save()
+            
+            return Response({
+                'id': achievement.id,
+                'title': achievement.title,
+                'type': achievement.type,
+                'date': achievement.date,
+                'description': achievement.description,
+                'file_url': achievement.file_url
+            })
+            
+        except ValueError as e:
+            return Response({
+                'message': f'无效的日期格式：{str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        achievement.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT) 

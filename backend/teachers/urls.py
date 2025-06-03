@@ -18,6 +18,14 @@ urlpatterns = [
     path('appointments/', views.appointment_list, name='appointment_list'),
     path('appointments/<int:appointment_id>/', views.appointment_detail, name='appointment_detail'),
     
+    # 教师个人中心的日程管理
+    path('teacher/schedules/', views.teacher_schedule_management, name='teacher_schedule_management'),
+    path('teacher/schedules/<int:schedule_id>/', views.teacher_schedule_detail, name='teacher_schedule_detail'),
+    
+    # 教师个人中心的成果管理
+    path('teacher/achievements/', views.teacher_achievement_management, name='teacher_achievement_management'),
+    path('teacher/achievements/<int:achievement_id>/', views.teacher_achievement_detail, name='teacher_achievement_detail'),
+    
     # 推荐系统
     path('recommendations/', views.get_recommendations, name='recommendations'),
     
