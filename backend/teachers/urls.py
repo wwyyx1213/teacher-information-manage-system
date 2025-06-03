@@ -35,4 +35,8 @@ urlpatterns = [
     # 教师个人中心
     path('profile/', views.teacher_profile, name='teacher_profile'),
     path('clear-session/', views.clear_session, name='clear-session'),
+    path('admin/users/', views.admin_user_management, name='admin_user_management'),
+    path('admin/users/<int:user_id>/', views.admin_user_management, name='admin_user_management_detail'),
+    path('admin/update-database/', views.update_database, name='update_database'),
+    path('change-password/', views.change_password, name='change_password'),
 ] 

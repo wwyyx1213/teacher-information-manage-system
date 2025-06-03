@@ -1,24 +1,70 @@
 <template>
     <div class="profile-view">
-        <!-- 非教师用户提示 -->
+        <!-- 非教师和管理员用户提示 -->
         <el-result
-            v-if="!isTeacher"
+            v-if="!isTeacher && !isAdmin"
             icon="warning"
             title="权限不足"
-            sub-title="只有教师用户可以访问此页面"
+            sub-title="只有教师和管理员用户可以访问此页面"
         >
             <template #extra>
                 <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
             </template>
         </el-result>
         
-        <!-- 教师用户界面 -->
+        <!-- 教师和管理员用户界面 -->
         <template v-else>
             <div class="page-header">
-                <h1>教师个人中心</h1>
+                <h1>{{ isAdmin ? '管理员个人中心' : '教师个人中心' }}</h1>
             </div>
             <el-card>
-                <el-tabs v-model="activeTab" tab-position="left" class="profile-tabs">
+                <!-- 管理员只显示修改密码 -->
+                <template v-if="isAdmin">
+                    <el-form
+                        :model="passwordForm"
+                        :rules="passwordRules"
+                        ref="passwordFormRef"
+                        label-width="100px"
+                        class="password-form"
+                    >
+                        <el-form-item label="原密码" prop="oldPassword">
+                            <el-input
+                                v-model="passwordForm.oldPassword"
+                                type="password"
+                                show-password
+                                placeholder="请输入原密码"
+                            />
+                        </el-form-item>
+                        <el-form-item label="新密码" prop="newPassword">
+                            <el-input
+                                v-model="passwordForm.newPassword"
+                                type="password"
+                                show-password
+                                placeholder="请输入新密码"
+                            />
+                        </el-form-item>
+                        <el-form-item label="确认密码" prop="confirmPassword">
+                            <el-input
+                                v-model="passwordForm.confirmPassword"
+                                type="password"
+                                show-password
+                                placeholder="请再次输入新密码"
+                            />
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button
+                                type="primary"
+                                @click="handleChangePassword"
+                                :loading="changingPassword"
+                            >
+                                修改密码
+                            </el-button>
+                        </el-form-item>
+                    </el-form>
+                </template>
+
+                <!-- 教师显示完整功能 -->
+                <el-tabs v-else v-model="activeTab" tab-position="left" class="profile-tabs">
                     <el-tab-pane label="基本信息" name="base">
                         <el-form :model="form" :rules="rules" ref="formRef" label-width="100px" class="profile-form">
                             <el-form-item label="姓名" prop="name">
@@ -79,8 +125,8 @@
                                 </el-table-column>
                                 <el-table-column label="操作" width="150">
                                     <template #default="scope">
-                                        <el-button type="primary" link @click="editSchedule(scope.row)" class="action-button edit-button">编辑</el-button>
-                                        <el-button type="danger" link @click="deleteSchedule(scope.row)" class="action-button delete-button">删除</el-button>
+                                        <el-button type="primary" link class="edit-btn" @click="editSchedule(scope.row)">编辑</el-button>
+                                        <el-button type="danger" link class="delete-btn" @click="deleteSchedule(scope.row)">删除</el-button>
                                     </template>
                                 </el-table-column>
                             </el-table>
@@ -109,8 +155,8 @@
                                 <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
                                 <el-table-column label="操作" width="150">
                                     <template #default="scope">
-                                        <el-button type="primary" link @click="editAchievement(scope.row)" class="action-button edit-button">编辑</el-button>
-                                        <el-button type="danger" link @click="deleteAchievement(scope.row)" class="action-button delete-button">删除</el-button>
+                                        <el-button type="primary" link @click="editAchievement(scope.row)">编辑</el-button>
+                                        <el-button type="danger" link @click="deleteAchievement(scope.row)">删除</el-button>
                                     </template>
                                 </el-table-column>
                             </el-table>
@@ -224,6 +270,7 @@ import dayjs from 'dayjs'
 const router = useRouter()
 const userStore = useUserStore()
 const isTeacher = computed(() => userStore.isTeacher)
+const isAdmin = computed(() => userStore.isAdmin)
 
 const activeTab = ref('base')
 const form = reactive({
@@ -507,10 +554,90 @@ const formatDate = (date) => {
     return dayjs(date).format('YYYY-MM-DD')
 }
 
+// 修改密码相关
+const passwordFormRef = ref()
+const changingPassword = ref(false)
+const passwordForm = reactive({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+})
+
+const validatePass = (rule, value, callback) => {
+    if (value === '') {
+        callback(new Error('请输入密码'))
+    } else {
+        if (passwordForm.confirmPassword !== '') {
+            passwordFormRef.value?.validateField('confirmPassword')
+        }
+        callback()
+    }
+}
+
+const validatePass2 = (rule, value, callback) => {
+    if (value === '') {
+        callback(new Error('请再次输入密码'))
+    } else if (value !== passwordForm.newPassword) {
+        callback(new Error('两次输入密码不一致!'))
+    } else {
+        callback()
+    }
+}
+
+const passwordRules = {
+    oldPassword: [
+        { required: true, message: '请输入原密码', trigger: 'blur' },
+        { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+    ],
+    newPassword: [
+        { required: true, validator: validatePass, trigger: 'blur' },
+        { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+    ],
+    confirmPassword: [
+        { required: true, validator: validatePass2, trigger: 'blur' }
+    ]
+}
+
+const handleChangePassword = async () => {
+    if (!passwordFormRef.value) return
+    
+    await passwordFormRef.value.validate(async (valid) => {
+        if (valid) {
+            changingPassword.value = true
+            try {
+                await api.post('/change-password/', {
+                    old_password: passwordForm.oldPassword,
+                    new_password: passwordForm.newPassword
+                })
+                ElMessage.success('密码修改成功')
+                // 清空表单
+                passwordForm.oldPassword = ''
+                passwordForm.newPassword = ''
+                passwordForm.confirmPassword = ''
+                // 如果是管理员，不退出登录
+                if (!isAdmin.value) {
+                    await userStore.logout()
+                    router.push('/login')
+                }
+            } catch (e) {
+                if (e.response?.status === 400) {
+                    ElMessage.error('原密码错误')
+                } else {
+                    ElMessage.error(e.response?.data?.message || '修改密码失败')
+                }
+            } finally {
+                changingPassword.value = false
+            }
+        }
+    })
+}
+
 onMounted(() => {
-    fetchProfile()
-    fetchSchedules()
-    fetchAchievements()
+    if (isTeacher.value) {
+        fetchProfile()
+        fetchSchedules()
+        fetchAchievements()
+    }
 })
 </script>
 
@@ -674,56 +801,52 @@ onMounted(() => {
 
 .el-button {
     border-radius: 4px;
-    font-weight: 500;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.1);
 }
 
 .el-button--primary {
-    background: linear-gradient(to right, #409EFF, #67C23A);
+    background: linear-gradient(to right, #67C23A, #67C23A);
     border: none;
+    color: #ffffff;
 }
 
 .el-button--primary:hover {
-    background: linear-gradient(to right, #67C23A, #409EFF);
+    background: linear-gradient(to right, #34495e, #2c3e50);
     opacity: 0.9;
 }
 
 .el-button--danger {
-    background: linear-gradient(to right, #F56C6C, #E6A23C);
+    background: linear-gradient(to right, #e74c3c, #e74c3c);
     border: none;
+    color: #ffffff;
 }
 
 .el-button--danger:hover {
-    background: linear-gradient(to right, #E6A23C, #F56C6C);
+    background: linear-gradient(to right, #e74c3c, #c0392b);
     opacity: 0.9;
 }
 
-/* 修改操作按钮样式 */
-.action-button {
-    font-weight: 500;
-    padding: 4px 8px;
-    margin: 0 4px;
-    border-radius: 4px;
-    transition: all 0.3s;
+.edit-btn {
+    color: #2c3e50 !important;
+    opacity: 0.9;
+    font-weight: 600;
 }
 
-.edit-button {
-    color: #409EFF;
-    background-color: rgba(64, 158, 255, 0.1);
+.edit-btn:hover {
+    color: #34495e !important;
+    opacity: 1;
 }
 
-.edit-button:hover {
-    color: #fff;
-    background-color: #409EFF;
+.delete-btn {
+    color: #c0392b !important;
+    opacity: 0.9;
+    font-weight: 600;
 }
 
-.delete-button {
-    color: #F56C6C;
-    background-color: rgba(245, 108, 108, 0.1);
-}
-
-.delete-button:hover {
-    color: #fff;
-    background-color: #F56C6C;
+.delete-btn:hover {
+    color: #e74c3c !important;
+    opacity: 1;
 }
 
 /* 添加响应式布局 */
@@ -744,5 +867,28 @@ onMounted(() => {
     .achievement-management {
         padding: 15px;
     }
+}
+
+.password-form {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+}
+
+.password-form :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: #606266;
+}
+
+.password-form :deep(.el-input__inner) {
+    border-radius: 4px;
+}
+
+.password-form .el-button {
+    width: 100%;
+    margin-top: 20px;
 }
 </style> 

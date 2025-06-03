@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.views.decorators.csrf import csrf_exempt
 from .models import User, Teacher, Schedule, ResearchAchievement, Appointment
 import json
@@ -11,6 +11,7 @@ from django.db.models import Count, Q
 from datetime import datetime, timedelta
 from django.utils import timezone
 import pytz
+from django.contrib.auth.hashers import check_password, make_password
 
 # 设置时区为中国时区
 china_tz = pytz.timezone('Asia/Shanghai')
@@ -949,4 +950,136 @@ def teacher_achievement_detail(request, achievement_id):
     
     elif request.method == 'DELETE':
         achievement.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT) 
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_user_management(request, user_id=None):
+    """
+    管理员用户管理API
+    GET: 获取用户列表
+    PUT: 更新用户状态
+    DELETE: 删除用户
+    """
+    # 检查用户是否为管理员
+    if not hasattr(request.user, 'role') or request.user.role != 'admin':
+        return Response({'message': '权限不足，仅管理员可访问'}, status=status.HTTP_403_FORBIDDEN)
+    
+    if request.method == 'GET':
+        try:
+            # 获取所有用户信息，排除密码等敏感字段
+            users = User.objects.all().values(
+                'id', 'username', 'email', 'role', 
+                'is_active', 'date_joined'
+            ).order_by('-date_joined')
+            return Response(list(users))
+        except Exception as e:
+            print(f"获取用户列表错误: {str(e)}")  # 添加错误日志
+            return Response({
+                'message': '获取用户列表失败，请稍后重试'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"获取用户信息错误: {str(e)}")  # 添加错误日志
+        return Response({
+            'message': '获取用户信息失败，请稍后重试'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    if request.method == 'PUT':
+        try:
+            is_active = request.data.get('is_active')
+            if is_active is None:
+                return Response({'message': '请提供用户状态'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.is_active = is_active
+            user.save()
+            return Response({'message': '用户状态更新成功'})
+        except Exception as e:
+            return Response({'message': f'更新用户状态失败: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    elif request.method == 'DELETE':
+        try:
+            if user.role == 'admin':
+                return Response({'message': '不能删除管理员账号'}, status=status.HTTP_400_BAD_REQUEST)
+            user.delete()
+            return Response({'message': '用户删除成功'})
+        except Exception as e:
+            return Response({'message': f'删除用户失败: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_database(request):
+    """
+    更新数据库，清理过期数据
+    """
+    # 检查用户是否为管理员
+    if not hasattr(request.user, 'role') or request.user.role != 'admin':
+        return Response({'message': '权限不足，仅管理员可访问'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        # 清理过期的预约请求（超过7天的待处理请求）
+        expired_date = timezone.now() - timedelta(days=7)
+        expired_appointments = Appointment.objects.filter(
+            Q(status='pending') & Q(time_slot__lt=expired_date)
+        )
+        expired_count = expired_appointments.count()
+        expired_appointments.delete()
+        
+        # 清理过期的日程（超过30天的日程）
+        old_date = timezone.now() - timedelta(days=30)
+        old_schedules = Schedule.objects.filter(end_time__lt=old_date)
+        old_schedules_count = old_schedules.count()
+        old_schedules.delete()
+        
+        total_deleted = expired_count + old_schedules_count
+        
+        return Response({
+            'message': '数据库更新成功',
+            'deleted_count': total_deleted,
+            'details': {
+                'expired_appointments': expired_count,
+                'old_schedules': old_schedules_count
+            }
+        })
+    except Exception as e:
+        print(f"更新数据库错误: {str(e)}")  # 添加错误日志
+        return Response({
+            'message': '更新数据库失败，请稍后重试'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """
+    修改用户密码
+    """
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    
+    if not old_password or not new_password:
+        return Response({
+            'message': '请提供原密码和新密码'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    if len(new_password) < 6:  # 修改为6个字符
+        return Response({
+            'message': '新密码长度不能少于6个字符'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # 验证原密码
+    if not check_password(old_password, request.user.password):
+        return Response({
+            'message': '原密码错误'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # 更新密码
+    request.user.password = make_password(new_password)
+    request.user.save()
+    
+    return Response({
+        'message': '密码修改成功'
+    }) 
