@@ -1029,6 +1029,7 @@ def update_database(request):
         expired_count = expired_appointments.count()
         expired_appointments.delete()
         
+        #（错误: 若觉得过期日程清理不合适，可以修改以下代码）
         # 清理过期的日程（超过30天的日程）
         old_date = timezone.now() - timedelta(days=30)
         old_schedules = Schedule.objects.filter(end_time__lt=old_date)
