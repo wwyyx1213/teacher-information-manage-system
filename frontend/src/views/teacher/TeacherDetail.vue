@@ -304,9 +304,8 @@ const handleAppointment = async () => {
     date.setMinutes(parseInt(minutes))
     date.setSeconds(0)
     
-    // 转换为 UTC 时间
-    const utcDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-    const timeSlot = utcDate.toISOString().split('.')[0]
+    // 转换为 ISO 格式的 UTC 时间
+    const timeSlot = date.toISOString()
     
     console.log('本地时间：', date.toLocaleString())
     console.log('发送的预约时间：', timeSlot)

@@ -425,7 +425,7 @@ def appointment_list(request):
             # 检查是否已经存在相同时间的预约
             existing_appointment = Appointment.objects.filter(
                 teacher_id=teacher_id,
-                time_slot=time_slot,
+                time_slot=time,
                 status__in=['pending', 'accepted']
             ).exists()
             
@@ -450,14 +450,15 @@ def appointment_list(request):
             appointment = Appointment.objects.create(
                 student=request.user,
                 teacher=teacher,
-                time_slot=time_slot,
+                time_slot=time,
                 remarks=remarks,
                 status='pending'
             )
             
             # 计算时间段
             time_slot_local = appointment.time_slot.astimezone(china_tz)
-            time_range = f"{time_slot_local.strftime('%H:%M')}-{(time_slot_local + timedelta(hours=1)).strftime('%H:%M')}"
+            end_time = time_slot_local + timedelta(hours=1)
+            time_range = f"{time_slot_local.strftime('%H:%M')}-{end_time.strftime('%H:%M')}"
             
             return Response({
                 'message': '预约成功',
@@ -475,11 +476,12 @@ def appointment_list(request):
                 'message': '教师不存在'
             }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(f"创建预约错误: {str(e)}")  # 添加调试日志
             return Response({
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['GET', 'PUT', 'PATCH'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def appointment_detail(request, appointment_id):
     try:
@@ -510,7 +512,7 @@ def appointment_detail(request, appointment_id):
                 'remarks': appointment.remarks
             }
             return Response(data)
-            
+        
         elif request.method in ['PUT', 'PATCH']:
             data = json.loads(request.body) if request.method == 'PUT' else request.data
             new_status = data.get('status')
@@ -537,7 +539,14 @@ def appointment_detail(request, appointment_id):
                     'message': '预约状态已更新',
                     'status': appointment.status
                 })
-                
+        
+        elif request.method == 'DELETE':
+            # 只有学生本人可以删除
+            if request.user.role == 'student' and appointment.student == request.user:
+                appointment.delete()
+                return Response({'message': '预约已取消'}, status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({'message': '只有预约学生本人可以取消预约'}, status=status.HTTP_403_FORBIDDEN)
     except Appointment.DoesNotExist:
         return Response({
             'message': '预约不存在'
