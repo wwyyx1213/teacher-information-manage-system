@@ -79,8 +79,8 @@
                                 </el-table-column>
                                 <el-table-column label="操作" width="150">
                                     <template #default="scope">
-                                        <el-button type="primary" link @click="editSchedule(scope.row)">编辑</el-button>
-                                        <el-button type="danger" link @click="deleteSchedule(scope.row)">删除</el-button>
+                                        <el-button type="primary" link @click="editSchedule(scope.row)" class="action-button edit-button">编辑</el-button>
+                                        <el-button type="danger" link @click="deleteSchedule(scope.row)" class="action-button delete-button">删除</el-button>
                                     </template>
                                 </el-table-column>
                             </el-table>
@@ -109,8 +109,8 @@
                                 <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
                                 <el-table-column label="操作" width="150">
                                     <template #default="scope">
-                                        <el-button type="primary" link @click="editAchievement(scope.row)">编辑</el-button>
-                                        <el-button type="danger" link @click="deleteAchievement(scope.row)">删除</el-button>
+                                        <el-button type="primary" link @click="editAchievement(scope.row)" class="action-button edit-button">编辑</el-button>
+                                        <el-button type="danger" link @click="deleteAchievement(scope.row)" class="action-button delete-button">删除</el-button>
                                     </template>
                                 </el-table-column>
                             </el-table>
@@ -137,12 +137,12 @@
                 />
             </el-form-item>
             <el-form-item label="开始时间" prop="start_time">
-                <el-select v-model="scheduleForm.start_time" placeholder="选择开始时间" style="width: 100%">
+                <el-select v-model="scheduleForm.start_time" placeholder="选择时间段" style="width: 100%">
                     <el-option
-                        v-for="hour in availableHours"
-                        :key="hour"
-                        :label="`${hour}:00`"
-                        :value="hour"
+                        v-for="time in availableHours"
+                        :key="time.start"
+                        :label="time.label"
+                        :value="time.start"
                     />
                 </el-select>
             </el-form-item>
@@ -300,7 +300,17 @@ const scheduleRules = {
     date: [{ required: true, message: '请选择日期', trigger: 'change' }],
     start_time: [{ required: true, message: '请选择开始时间', trigger: 'change' }]
 }
-const availableHours = [8, 9, 10, 11, 14, 15, 16, 17, 19, 20, 21]
+const availableHours = [
+    { start: 8, end: 9, label: '8:00-9:00' },
+    { start: 9, end: 10, label: '9:00-10:00' },
+    { start: 10, end: 11, label: '10:00-11:00' },
+    { start: 11, end: 12, label: '11:00-12:00' },
+    { start: 14, end: 15, label: '14:00-15:00' },
+    { start: 15, end: 16, label: '15:00-16:00' },
+    { start: 16, end: 17, label: '16:00-17:00' },
+    { start: 19, end: 20, label: '19:00-20:00' },
+    { start: 20, end: 21, label: '20:00-21:00' }
+]
 
 // 成果管理相关
 const achievements = ref([])
@@ -509,72 +519,230 @@ onMounted(() => {
     padding: 20px;
     max-width: 1200px;
     margin: 0 auto;
+    background-color: #f5f7fa;
+    min-height: calc(100vh - 40px);
 }
+
 .page-header {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
     text-align: center;
+    padding: 20px 0;
+    background: linear-gradient(to right, #409EFF, #67C23A);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
+
 .page-header h1 {
     margin: 0;
-    color: #303133;
-    font-size: 24px;
+    color: #fff;
+    font-size: 28px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
+
+.el-card {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
 .profile-tabs {
     min-height: 600px;
+    padding: 20px;
 }
+
+.profile-tabs :deep(.el-tabs__nav) {
+    width: 160px;
+}
+
+.profile-tabs :deep(.el-tabs__item) {
+    height: 50px;
+    line-height: 50px;
+    font-size: 16px;
+    text-align: left;
+    padding-left: 20px;
+}
+
+.profile-tabs :deep(.el-tabs__content) {
+    padding: 20px 30px;
+    background-color: #fff;
+    border-radius: 0 8px 8px 0;
+    min-height: 500px;
+}
+
 .profile-form {
     margin-top: 20px;
     max-width: 800px;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
 }
-.placeholder-tab {
-    color: #aaa;
-    text-align: center;
-    padding: 60px 0;
-    font-size: 1.2em;
-}
+
 .schedule-management,
 .achievement-management {
-    padding: 20px;
+    padding: 30px;
     background-color: #fff;
-    border-radius: 4px;
-    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
 }
+
 .schedule-header,
 .achievement-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ebeef5;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #ebeef5;
 }
+
 .schedule-header h3,
 .achievement-header h3 {
     margin: 0;
     color: #303133;
-    font-size: 18px;
+    font-size: 20px;
+    font-weight: 600;
 }
+
 .el-table {
     margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
 }
+
+.el-table :deep(th) {
+    background-color: #f5f7fa !important;
+    font-weight: 600;
+    color: #606266;
+}
+
+.el-table :deep(td) {
+    padding: 12px 0;
+}
+
 .el-dialog {
     max-width: 600px;
+    border-radius: 8px;
 }
+
+.el-dialog :deep(.el-dialog__header) {
+    padding: 20px;
+    margin: 0;
+    border-bottom: 1px solid #ebeef5;
+}
+
+.el-dialog :deep(.el-dialog__body) {
+    padding: 30px 20px;
+}
+
+.el-dialog :deep(.el-dialog__footer) {
+    padding: 15px 20px;
+    border-top: 1px solid #ebeef5;
+}
+
 .dialog-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 12px;
     margin-top: 20px;
 }
+
 .el-form-item {
-    margin-bottom: 22px;
+    margin-bottom: 25px;
 }
+
+.el-form-item :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: #606266;
+}
+
 .el-input,
 .el-select,
 .el-date-picker {
     width: 100%;
 }
+
+.el-input :deep(.el-input__inner),
+.el-select :deep(.el-input__inner) {
+    border-radius: 4px;
+}
+
 .el-tag {
     margin-right: 8px;
+    border-radius: 4px;
+}
+
+.el-button {
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.el-button--primary {
+    background: linear-gradient(to right, #409EFF, #67C23A);
+    border: none;
+}
+
+.el-button--primary:hover {
+    background: linear-gradient(to right, #67C23A, #409EFF);
+    opacity: 0.9;
+}
+
+.el-button--danger {
+    background: linear-gradient(to right, #F56C6C, #E6A23C);
+    border: none;
+}
+
+.el-button--danger:hover {
+    background: linear-gradient(to right, #E6A23C, #F56C6C);
+    opacity: 0.9;
+}
+
+/* 修改操作按钮样式 */
+.action-button {
+    font-weight: 500;
+    padding: 4px 8px;
+    margin: 0 4px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.edit-button {
+    color: #409EFF;
+    background-color: rgba(64, 158, 255, 0.1);
+}
+
+.edit-button:hover {
+    color: #fff;
+    background-color: #409EFF;
+}
+
+.delete-button {
+    color: #F56C6C;
+    background-color: rgba(245, 108, 108, 0.1);
+}
+
+.delete-button:hover {
+    color: #fff;
+    background-color: #F56C6C;
+}
+
+/* 添加响应式布局 */
+@media screen and (max-width: 768px) {
+    .profile-view {
+        padding: 10px;
+    }
+    
+    .profile-tabs :deep(.el-tabs__nav) {
+        width: 120px;
+    }
+    
+    .profile-tabs :deep(.el-tabs__content) {
+        padding: 15px;
+    }
+    
+    .schedule-management,
+    .achievement-management {
+        padding: 15px;
+    }
 }
 </style> 
