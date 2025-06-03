@@ -9,7 +9,7 @@
         <el-table-column prop="teacher.name" label="教师姓名" />
         <el-table-column prop="time_slot" label="预约时间">
           <template #default="{ row }">
-            {{ formatDateTime(row.time_slot) }}
+            {{ formatDateTime(row.time_slot) }} {{ row.time_range }}
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态">
@@ -91,13 +91,15 @@ const fetchAppointments = async () => {
 
 // 格式化日期时间
 const formatDateTime = (datetime) => {
-  return new Date(datetime).toLocaleString('zh-CN', {
+  const date = new Date(datetime)
+  return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
-  })
+    minute: '2-digit',
+    hour12: false
+  }).replace(/\//g, '-')
 }
 
 // 获取状态类型

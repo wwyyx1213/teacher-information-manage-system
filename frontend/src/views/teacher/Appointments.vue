@@ -8,7 +8,7 @@
         <el-table-column prop="student.username" label="学生姓名" />
         <el-table-column prop="time_slot" label="预约时间">
           <template #default="{ row }">
-            {{ formatDateTime(row.time_slot) }}
+            {{ formatDateTime(row.time_slot) }} {{ row.time_range }}
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态">
@@ -79,14 +79,12 @@ const pageSize = ref(10)
 const fetchAppointments = async () => {
   try {
     loading.value = true
-    const params = {
-      page: currentPage.value,
-      page_size: pageSize.value
-    }
-    const response = await api.get('/appointments/', { params })
+    const response = await api.get('/appointments/')
+    console.log('预约列表响应:', response)  // 添加调试日志
     appointments.value = response.results
     total.value = response.count
   } catch (error) {
+    console.error('获取预约列表错误:', error)  // 添加调试日志
     ElMessage.error('获取预约列表失败：' + (error.response?.data?.message || error.message))
   } finally {
     loading.value = false
@@ -95,13 +93,15 @@ const fetchAppointments = async () => {
 
 // 格式化日期时间
 const formatDateTime = (datetime) => {
-  return new Date(datetime).toLocaleString('zh-CN', {
+  const date = new Date(datetime)
+  return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
-  })
+    minute: '2-digit',
+    hour12: false
+  }).replace(/\//g, '-')
 }
 
 // 获取状态类型

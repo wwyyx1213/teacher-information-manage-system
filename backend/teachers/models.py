@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from datetime import datetime, timedelta
 
 
 # 自定义用户模型
@@ -61,15 +62,27 @@ class ResearchAchievement(models.Model):
 
 # 预约记录
 class Appointment(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_appointments')
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='teacher_appointments')
     time_slot = models.DateTimeField()
     status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending'),
-        ('accepted', 'Accepted'),
-        ('rejected', 'Rejected')
+        ('pending', '待确认'),
+        ('accepted', '已接受'),
+        ('rejected', '已拒绝')
     ], default='pending')
-    remarks = models.TextField(blank=True, null=True)
+    remarks = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expired_at = models.DateTimeField(null=True)  # 预约过期时间
+
+    class Meta:
+        ordering = ['-time_slot']
+
+    def save(self, *args, **kwargs):
+        # 设置过期时间为预约时间后24小时
+        if not self.expired_at:
+            self.expired_at = self.time_slot + timedelta(hours=24)
+        super().save(*args, **kwargs)
 
 # 通知
 class Notification(models.Model):

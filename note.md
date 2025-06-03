@@ -49,7 +49,22 @@ pip install celery redis django-celery-beat django-celery-results
 winget install Redis-x64
 	pip install memurai
 pip install sqlalchemy
+pip install pytz
 ```
+
+
+
+改数据库
+
+```python
+# 创建迁移文件
+python manage.py makemigrations
+
+# 应用迁移，创建 SQLite 数据库
+python manage.py migrate
+```
+
+
 
 
 
@@ -58,6 +73,10 @@ run：
 ```shell
  .\venv\Scripts\activate
 cd backend
+python manage.py runserver       
+cd frontend
+npm run dev
+
 redis-server
 
 # 启动 Celery beat（用于定时任务）

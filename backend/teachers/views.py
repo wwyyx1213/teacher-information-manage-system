@@ -8,7 +8,12 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import User, Teacher, Schedule, ResearchAchievement, Appointment
 import json
 from django.db.models import Count, Q
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.utils import timezone
+import pytz
+
+# 设置时区为中国时区
+china_tz = pytz.timezone('Asia/Shanghai')
 
 # 认证相关视图
 @api_view(['POST'])
@@ -94,7 +99,21 @@ def login_view(request):
                         'avatar_url': teacher.avatar_url
                     })
                 except Teacher.DoesNotExist:
-                    pass
+                    # 如果教师信息不存在，创建一个新的教师信息
+                    teacher = Teacher.objects.create(
+                        user=user,
+                        name=username,  # 默认使用用户名作为教师姓名
+                        department='未设置',
+                        title='未设置',
+                        research_areas='未设置'
+                    )
+                    response_data['user'].update({
+                        'name': teacher.name,
+                        'department': teacher.department,
+                        'title': teacher.title,
+                        'research_areas': teacher.research_areas,
+                        'avatar_url': teacher.avatar_url
+                    })
             
             print("Login response data:", response_data)  # 添加调试日志
             return Response(response_data)
@@ -302,27 +321,68 @@ def teacher_research(request, teacher_id):
 @permission_classes([IsAuthenticated])
 def appointment_list(request):
     if request.method == 'GET':
-        user = request.user
-        
-        if user.role == 'student':
-            appointments = Appointment.objects.filter(student=user)
-        elif user.role == 'teacher':
-            teacher = Teacher.objects.get(user=user)
-            appointments = Appointment.objects.filter(teacher=teacher)
-        else:
-            return Response({
-                'message': '权限不足'
-            }, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = request.user
+            print(f"获取预约列表，用户角色: {user.role}, 用户ID: {user.id}")
             
-        data = [{
-            'id': a.id,
-            'student': a.student.username,
-            'teacher': a.teacher.name,
-            'time_slot': a.time_slot,
-            'status': a.status,
-            'remarks': a.remarks
-        } for a in appointments]
-        return Response(data)
+            if user.role == 'student':
+                appointments = Appointment.objects.filter(student=user)
+            elif user.role == 'teacher':
+                try:
+                    teacher = Teacher.objects.get(user=user)
+                    print(f"找到教师信息: {teacher.id}, {teacher.name}")
+                    appointments = Appointment.objects.filter(teacher=teacher)
+                except Teacher.DoesNotExist:
+                    print(f"未找到教师信息，用户ID: {user.id}")
+                    return Response({
+                        'message': '未找到教师信息'
+                    }, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({
+                    'message': '权限不足'
+                }, status=status.HTTP_403_FORBIDDEN)
+                
+            data = []
+            for a in appointments:
+                try:
+                    # 确保时间在中国时区
+                    time_slot = a.time_slot.astimezone(china_tz)
+                    # 计算时间段
+                    time_range = f"{time_slot.strftime('%H:%M')}-{(time_slot + timedelta(hours=1)).strftime('%H:%M')}"
+                    
+                    appointment_data = {
+                        'id': a.id,
+                        'student': {
+                            'id': a.student.id,
+                            'username': a.student.username
+                        },
+                        'teacher': {
+                            'id': a.teacher.id,
+                            'name': a.teacher.name
+                        },
+                        'time_slot': time_slot,
+                        'time_range': time_range,
+                        'status': a.status,
+                        'remarks': a.remarks
+                    }
+                    data.append(appointment_data)
+                except Exception as e:
+                    print(f"处理预约数据错误: {str(e)}, 预约ID: {a.id}")
+                    continue
+            
+            print(f"返回预约列表数据: {data}")
+            return Response({
+                'count': len(data),
+                'results': data
+            })
+            
+        except Exception as e:
+            import traceback
+            print(f"获取预约列表错误: {str(e)}")
+            print(f"错误堆栈: {traceback.format_exc()}")
+            return Response({
+                'message': f'获取预约列表失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     elif request.method == 'POST':
         try:
@@ -341,8 +401,8 @@ def appointment_list(request):
                 # 尝试解析 ISO 格式的时间
                 time = datetime.fromisoformat(time_slot.replace('Z', '+00:00'))
                 
-                # 转换为本地时间
-                local_time = time.astimezone()
+                # 转换为中国时区
+                local_time = time.astimezone(china_tz)
                 hour = local_time.hour
                 
                 # 验证小时是否在允许的时间段内
@@ -395,12 +455,17 @@ def appointment_list(request):
                 status='pending'
             )
             
+            # 计算时间段
+            time_slot_local = appointment.time_slot.astimezone(china_tz)
+            time_range = f"{time_slot_local.strftime('%H:%M')}-{(time_slot_local + timedelta(hours=1)).strftime('%H:%M')}"
+            
             return Response({
                 'message': '预约成功',
                 'appointment': {
                     'id': appointment.id,
                     'teacher': teacher.name,
-                    'time_slot': appointment.time_slot,
+                    'time_slot': appointment.time_slot.astimezone(china_tz),
+                    'time_range': time_range,
                     'status': appointment.status
                 }
             }, status=status.HTTP_201_CREATED)
@@ -414,7 +479,7 @@ def appointment_list(request):
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def appointment_detail(request, appointment_id):
     try:
@@ -433,18 +498,21 @@ def appointment_detail(request, appointment_id):
                 }, status=status.HTTP_403_FORBIDDEN)
         
         if request.method == 'GET':
+            time_slot = appointment.time_slot.astimezone(china_tz)
+            time_range = f"{time_slot.strftime('%H:%M')}-{(time_slot + timedelta(hours=1)).strftime('%H:%M')}"
             data = {
                 'id': appointment.id,
                 'student': appointment.student.username,
                 'teacher': appointment.teacher.name,
-                'time_slot': appointment.time_slot,
+                'time_slot': time_slot,
+                'time_range': time_range,
                 'status': appointment.status,
                 'remarks': appointment.remarks
             }
             return Response(data)
             
-        elif request.method == 'PUT':
-            data = json.loads(request.body)
+        elif request.method in ['PUT', 'PATCH']:
+            data = json.loads(request.body) if request.method == 'PUT' else request.data
             new_status = data.get('status')
             
             if new_status not in ['accepted', 'rejected']:
@@ -475,6 +543,7 @@ def appointment_detail(request, appointment_id):
             'message': '预约不存在'
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        print(f"处理预约详情错误: {str(e)}")  # 添加调试日志
         return Response({
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
