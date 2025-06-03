@@ -13,7 +13,13 @@
           </el-input>
         </el-form-item>
         <el-form-item prop="password">
-          <el-input v-model="loginForm.password" type="password" placeholder="密码">
+          <el-input 
+            v-model="loginForm.password" 
+            type="password" 
+            show-password 
+            placeholder="密码"
+            :password-icon="[View, Hide]"
+          >
             <template #prefix>
               <el-icon><Lock /></el-icon>
             </template>
@@ -37,6 +43,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
+import { User, Lock, View, Hide } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()

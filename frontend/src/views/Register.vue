@@ -13,11 +13,11 @@
         </el-form-item>
         
         <el-form-item label="密码" prop="password">
-          <el-input v-model="registerForm.password" type="password" placeholder="请输入密码"></el-input>
+          <el-input v-model="registerForm.password" type="password" show-password placeholder="请输入密码"></el-input>
         </el-form-item>
         
         <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码"></el-input>
+          <el-input v-model="registerForm.confirmPassword" type="password" show-password placeholder="请再次输入密码"></el-input>
         </el-form-item>
         
         <el-form-item label="角色" prop="role">

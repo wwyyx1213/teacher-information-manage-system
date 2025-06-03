@@ -1,21 +1,21 @@
 <template>
     <div class="profile-view">
-        <!-- 非教师和管理员用户提示 -->
+        <!-- 未登录用户提示 -->
         <el-result
-            v-if="!isTeacher && !isAdmin"
+            v-if="!userStore.isLoggedIn"
             icon="warning"
-            title="权限不足"
-            sub-title="只有教师和管理员用户可以访问此页面"
+            title="请先登录"
+            sub-title="登录后才能访问个人中心"
         >
             <template #extra>
-                <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
+                <el-button type="primary" @click="$router.push('/login')">去登录</el-button>
             </template>
         </el-result>
         
-        <!-- 教师和管理员用户界面 -->
+        <!-- 已登录用户界面 -->
         <template v-else>
             <div class="page-header">
-                <h1>{{ isAdmin ? '管理员个人中心' : '教师个人中心' }}</h1>
+                <h1>{{ isAdmin ? '管理员个人中心' : (isTeacher ? '教师个人中心' : '学生个人中心') }}</h1>
             </div>
             <el-card>
                 <!-- 管理员只显示修改密码 -->
@@ -63,106 +63,196 @@
                     </el-form>
                 </template>
 
-                <!-- 教师显示完整功能 -->
-                <el-tabs v-else v-model="activeTab" tab-position="left" class="profile-tabs">
-                    <el-tab-pane label="基本信息" name="base">
-                        <el-form :model="form" :rules="rules" ref="formRef" label-width="100px" class="profile-form">
-                            <el-form-item label="姓名" prop="name">
-                                <el-input v-model="form.name" />
-                            </el-form-item>
-                            <el-form-item label="院系" prop="department">
-                                <el-select v-model="form.department" filterable placeholder="请选择院系">
-                                    <el-option v-for="dept in departments" :key="dept" :label="dept" :value="dept" />
-                                </el-select>
-                            </el-form-item>
-                            <el-form-item label="职称" prop="title">
-                                <el-select v-model="form.title" filterable placeholder="请选择职称">
-                                    <el-option v-for="title in titles" :key="title" :label="title" :value="title" />
-                                </el-select>
-                            </el-form-item>
-                            <el-form-item label="研究方向" prop="research_areas">
-                                <el-input v-model="form.research_areas" placeholder="多个方向用逗号分隔" />
-                            </el-form-item>
-                            <el-form-item label="个人主页" prop="homepage_url">
-                                <el-input v-model="form.homepage_url" />
-                            </el-form-item>
-                            <el-form-item label="头像URL" prop="avatar_url">
-                                <el-input v-model="form.avatar_url" />
-                            </el-form-item>
-                            <el-form-item label="个人简介" prop="bio">
-                                <el-input type="textarea" v-model="form.bio" :rows="3" />
-                            </el-form-item>
-                            <el-form-item>
-                                <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
-                            </el-form-item>
-                        </el-form>
-                    </el-tab-pane>
-                    <el-tab-pane label="日程管理" name="schedule">
-                        <div class="schedule-management">
-                            <div class="schedule-header">
-                                <h3>日程管理</h3>
-                                <el-button type="primary" @click="showAddScheduleDialog">添加日程</el-button>
+                <!-- 教师界面 -->
+                <template v-else-if="isTeacher">
+                    <el-tabs v-model="activeTab" tab-position="left" class="profile-tabs">
+                        <el-tab-pane label="基本信息" name="base">
+                            <el-form :model="form" :rules="rules" ref="formRef" label-width="100px" class="profile-form">
+                                <el-form-item label="姓名" prop="name">
+                                    <el-input v-model="form.name" />
+                                </el-form-item>
+                                <el-form-item label="院系" prop="department">
+                                    <el-select v-model="form.department" filterable placeholder="请选择院系">
+                                        <el-option v-for="dept in departments" :key="dept" :label="dept" :value="dept" />
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="职称" prop="title">
+                                    <el-select v-model="form.title" filterable placeholder="请选择职称">
+                                        <el-option v-for="title in titles" :key="title" :label="title" :value="title" />
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="研究方向" prop="research_areas">
+                                    <el-input v-model="form.research_areas" placeholder="多个方向用逗号分隔" />
+                                </el-form-item>
+                                <el-form-item label="个人主页" prop="homepage_url">
+                                    <el-input v-model="form.homepage_url" />
+                                </el-form-item>
+                                <el-form-item label="头像URL" prop="avatar_url">
+                                    <el-input v-model="form.avatar_url" />
+                                </el-form-item>
+                                <el-form-item label="个人简介" prop="bio">
+                                    <el-input type="textarea" v-model="form.bio" :rows="3" />
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-tab-pane>
+                        <el-tab-pane label="修改密码" name="password">
+                            <el-form
+                                :model="passwordForm"
+                                :rules="passwordRules"
+                                ref="passwordFormRef"
+                                label-width="100px"
+                                class="password-form"
+                            >
+                                <el-form-item label="原密码" prop="oldPassword">
+                                    <el-input
+                                        v-model="passwordForm.oldPassword"
+                                        type="password"
+                                        show-password
+                                        placeholder="请输入原密码"
+                                    />
+                                </el-form-item>
+                                <el-form-item label="新密码" prop="newPassword">
+                                    <el-input
+                                        v-model="passwordForm.newPassword"
+                                        type="password"
+                                        show-password
+                                        placeholder="请输入新密码"
+                                    />
+                                </el-form-item>
+                                <el-form-item label="确认密码" prop="confirmPassword">
+                                    <el-input
+                                        v-model="passwordForm.confirmPassword"
+                                        type="password"
+                                        show-password
+                                        placeholder="请再次输入新密码"
+                                    />
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button
+                                        type="primary"
+                                        @click="handleChangePassword"
+                                        :loading="changingPassword"
+                                    >
+                                        修改密码
+                                    </el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-tab-pane>
+                        <el-tab-pane label="日程管理" name="schedule">
+                            <div class="schedule-management">
+                                <div class="schedule-header">
+                                    <h3>日程管理</h3>
+                                    <el-button type="primary" @click="showAddScheduleDialog">添加日程</el-button>
+                                </div>
+                                
+                                <!-- 日程列表 -->
+                                <el-table :data="schedules" style="width: 100%" v-loading="scheduleLoading">
+                                    <el-table-column prop="start_time" label="开始时间" width="180">
+                                        <template #default="scope">
+                                            {{ formatDateTime(scope.row.start_time) }}
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="end_time" label="结束时间" width="180">
+                                        <template #default="scope">
+                                            {{ formatDateTime(scope.row.end_time) }}
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="is_available" label="状态" width="100">
+                                        <template #default="scope">
+                                            <el-tag :type="scope.row.is_available ? 'success' : 'info'">
+                                                {{ scope.row.is_available ? '可预约' : '不可预约' }}
+                                            </el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="操作" width="150">
+                                        <template #default="scope">
+                                            <el-button type="primary" link class="edit-btn" @click="editSchedule(scope.row)">编辑</el-button>
+                                            <el-button type="danger" link class="delete-btn" @click="deleteSchedule(scope.row)">删除</el-button>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
                             </div>
-                            
-                            <!-- 日程列表 -->
-                            <el-table :data="schedules" style="width: 100%" v-loading="scheduleLoading">
-                                <el-table-column prop="start_time" label="开始时间" width="180">
-                                    <template #default="scope">
-                                        {{ formatDateTime(scope.row.start_time) }}
-                                    </template>
-                                </el-table-column>
-                                <el-table-column prop="end_time" label="结束时间" width="180">
-                                    <template #default="scope">
-                                        {{ formatDateTime(scope.row.end_time) }}
-                                    </template>
-                                </el-table-column>
-                                <el-table-column prop="is_available" label="状态" width="100">
-                                    <template #default="scope">
-                                        <el-tag :type="scope.row.is_available ? 'success' : 'info'">
-                                            {{ scope.row.is_available ? '可预约' : '不可预约' }}
-                                        </el-tag>
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="操作" width="150">
-                                    <template #default="scope">
-                                        <el-button type="primary" link class="edit-btn" @click="editSchedule(scope.row)">编辑</el-button>
-                                        <el-button type="danger" link class="delete-btn" @click="deleteSchedule(scope.row)">删除</el-button>
-                                    </template>
-                                </el-table-column>
-                            </el-table>
-                        </div>
-                    </el-tab-pane>
-                    <el-tab-pane label="成果管理" name="achievement">
-                        <div class="achievement-management">
-                            <div class="achievement-header">
-                                <h3>成果管理</h3>
-                                <el-button type="primary" @click="showAddAchievementDialog">添加成果</el-button>
+                        </el-tab-pane>
+                        <el-tab-pane label="成果管理" name="achievement">
+                            <div class="achievement-management">
+                                <div class="achievement-header">
+                                    <h3>成果管理</h3>
+                                    <el-button type="primary" @click="showAddAchievementDialog">添加成果</el-button>
+                                </div>
+                                
+                                <!-- 成果列表 -->
+                                <el-table :data="achievements" style="width: 100%" v-loading="achievementLoading">
+                                    <el-table-column prop="title" label="标题" min-width="200" />
+                                    <el-table-column prop="type" label="类型" width="120">
+                                        <template #default="scope">
+                                            <el-tag>{{ scope.row.type }}</el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="date" label="日期" width="120">
+                                        <template #default="scope">
+                                            {{ formatDate(scope.row.date) }}
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+                                    <el-table-column label="操作" width="150">
+                                        <template #default="scope">
+                                            <el-button type="primary" link @click="editAchievement(scope.row)">编辑</el-button>
+                                            <el-button type="danger" link @click="deleteAchievement(scope.row)">删除</el-button>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
                             </div>
-                            
-                            <!-- 成果列表 -->
-                            <el-table :data="achievements" style="width: 100%" v-loading="achievementLoading">
-                                <el-table-column prop="title" label="标题" min-width="200" />
-                                <el-table-column prop="type" label="类型" width="120">
-                                    <template #default="scope">
-                                        <el-tag>{{ scope.row.type }}</el-tag>
-                                    </template>
-                                </el-table-column>
-                                <el-table-column prop="date" label="日期" width="120">
-                                    <template #default="scope">
-                                        {{ formatDate(scope.row.date) }}
-                                    </template>
-                                </el-table-column>
-                                <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-                                <el-table-column label="操作" width="150">
-                                    <template #default="scope">
-                                        <el-button type="primary" link @click="editAchievement(scope.row)">编辑</el-button>
-                                        <el-button type="danger" link @click="deleteAchievement(scope.row)">删除</el-button>
-                                    </template>
-                                </el-table-column>
-                            </el-table>
-                        </div>
-                    </el-tab-pane>
-                </el-tabs>
+                        </el-tab-pane>
+                    </el-tabs>
+                </template>
+
+                <!-- 学生界面 -->
+                <template v-else>
+                    <el-form
+                        :model="passwordForm"
+                        :rules="passwordRules"
+                        ref="passwordFormRef"
+                        label-width="100px"
+                        class="password-form"
+                    >
+                        <el-form-item label="原密码" prop="oldPassword">
+                            <el-input
+                                v-model="passwordForm.oldPassword"
+                                type="password"
+                                show-password
+                                placeholder="请输入原密码"
+                            />
+                        </el-form-item>
+                        <el-form-item label="新密码" prop="newPassword">
+                            <el-input
+                                v-model="passwordForm.newPassword"
+                                type="password"
+                                show-password
+                                placeholder="请输入新密码"
+                            />
+                        </el-form-item>
+                        <el-form-item label="确认密码" prop="confirmPassword">
+                            <el-input
+                                v-model="passwordForm.confirmPassword"
+                                type="password"
+                                show-password
+                                placeholder="请再次输入新密码"
+                            />
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button
+                                type="primary"
+                                @click="handleChangePassword"
+                                :loading="changingPassword"
+                            >
+                                修改密码
+                            </el-button>
+                        </el-form-item>
+                    </el-form>
+                </template>
             </el-card>
         </template>
     </div>
@@ -271,6 +361,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const isTeacher = computed(() => userStore.isTeacher)
 const isAdmin = computed(() => userStore.isAdmin)
+const isStudent = computed(() => userStore.isStudent)
 
 const activeTab = ref('base')
 const form = reactive({
@@ -578,7 +669,7 @@ const validatePass2 = (rule, value, callback) => {
     if (value === '') {
         callback(new Error('请再次输入密码'))
     } else if (value !== passwordForm.newPassword) {
-        callback(new Error('两次输入密码不一致!'))
+        callback(new Error('两次输入密码不一致'))
     } else {
         callback()
     }
@@ -587,11 +678,11 @@ const validatePass2 = (rule, value, callback) => {
 const passwordRules = {
     oldPassword: [
         { required: true, message: '请输入原密码', trigger: 'blur' },
-        { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+        { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' }
     ],
     newPassword: [
         { required: true, validator: validatePass, trigger: 'blur' },
-        { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+        { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' }
     ],
     confirmPassword: [
         { required: true, validator: validatePass2, trigger: 'blur' }
@@ -614,17 +705,13 @@ const handleChangePassword = async () => {
                 passwordForm.oldPassword = ''
                 passwordForm.newPassword = ''
                 passwordForm.confirmPassword = ''
-                // 如果是管理员，不退出登录
+                // 如果不是管理员，跳转到登录页面
                 if (!isAdmin.value) {
                     await userStore.logout()
                     router.push('/login')
                 }
             } catch (e) {
-                if (e.response?.status === 400) {
-                    ElMessage.error('原密码错误')
-                } else {
-                    ElMessage.error(e.response?.data?.message || '修改密码失败')
-                }
+                ElMessage.error(e.response?.data?.message || '密码修改失败')
             } finally {
                 changingPassword.value = false
             }
