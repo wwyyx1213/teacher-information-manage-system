@@ -67,7 +67,9 @@ export default {
             
             // 根据用户角色设置目标路由
             let targetRoute = '/'
-            if (userStore.isStudent) {
+            if (userStore.isAdmin) {
+              targetRoute = '/admin'
+            } else if (userStore.isStudent) {
               targetRoute = '/my-appointments'
             } else if (userStore.isTeacher) {
               targetRoute = '/appointments'
