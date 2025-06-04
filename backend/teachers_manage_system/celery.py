@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery.schedules import crontab
 
 # 设置默认的 Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'teachers_manage_system.settings')
@@ -16,12 +17,17 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'clean-expired-appointments': {
         'task': 'teachers.tasks.clean_expired_appointments',
-        'schedule': 3600.0,  # 每小时执行一次
+        'schedule': crontab(minute=0, hour='*'),  # 每小时执行一次
     },
 }
 
-# 使用 SQLite 作为后端
+# 使用 Redis 作为 broker 和 backend
 app.conf.update(
-    broker_url='sqla+sqlite:///celerydb.sqlite',
-    result_backend='db+sqlite:///celery_results.sqlite',
+    broker_url='redis://localhost:6379/0',
+    result_backend='redis://localhost:6379/0',
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='Asia/Shanghai',
+    enable_utc=True,
 ) 
